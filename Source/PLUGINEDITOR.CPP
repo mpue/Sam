@@ -20,24 +20,24 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	setSize(1260, 1000);
 
 
-	keyboard = std::make_unique<juce::MidiKeyboardComponent>(state, juce::MidiKeyboardComponent::Orientation::horizontalKeyboard);
+	keyboard = std::make_unique<juce::MidiKeyboardComponent>(audioProcessor.state, juce::MidiKeyboardComponent::Orientation::horizontalKeyboard);
 	keyboard->setSize(1193, 150);
-	keyboard->setTopLeftPosition(30, 810);
-	state.addListener(this);
+	keyboard->setTopLeftPosition(30, 810);	
+	audioProcessor.state.addListener(this);
 	addAndMakeVisible(keyboard.get());
-	cache = std::make_unique<juce::AudioThumbnailCache>(1);
-	thumbnail = std::make_unique<juce::AudioThumbnail>(32, *p.fmtMgr.get(), *cache.get());
+
 	ampEnvelope = std::make_unique<GraphicalEnvelope>();
 	ampEnvelope->setSize(500, 195);
 	ampEnvelope->setTopLeftPosition(32, 330);
 	addAndMakeVisible(ampEnvelope.get());
+
 	filterEnvelope = std::make_unique<GraphicalEnvelope>();
 	filterEnvelope->setSize(500, 195);
 	filterEnvelope->setTopLeftPosition(722, 330);
 	addAndMakeVisible(filterEnvelope.get());
 
 	loadButton = std::make_unique<juce::TextButton>("Load");
-	loadButton->setSize(100, 20);
+	loadButton->setSize(100, 20);	
 	loadButton->setTopLeftPosition(32, 5);
 	addAndMakeVisible(loadButton.get());
 
@@ -53,7 +53,7 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 
 	loopButton = std::make_unique<juce::ToggleButton>("Loop");
 	loopButton->setSize(100, 20);
-	loopButton->setTopLeftPosition(356, 5);
+	loopButton->setTopLeftPosition(42, 300);
 	addAndMakeVisible(loopButton.get());
 
 	noteLabel = std::make_unique<juce::Label>("None");
@@ -64,23 +64,52 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	cutoffSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::RotaryVerticalDrag,juce::Slider::TextEntryBoxPosition::NoTextBox);
 	cutoffSlider->setSize(64, 64);
 	cutoffSlider->setTopLeftPosition(725, 550);
+	cutoffSlider->setRange(0, 22000);
 	addAndMakeVisible(cutoffSlider.get());
+
+	cutoffLabel = std::make_unique<juce::Label>("Cutoff","Cutoff");
+	cutoffLabel->setSize(100, 25);
+	cutoffLabel->setTopLeftPosition(730, 610);
+	addAndMakeVisible(cutoffLabel.get());
 
 	resoSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::RotaryVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox);
 	resoSlider->setSize(64, 64);
-	resoSlider->setTopLeftPosition(800, 550);
+	resoSlider->setTopLeftPosition(825, 550);
+	resoSlider->setRange(0, 5);
 	addAndMakeVisible(resoSlider.get());
+
+	resoLabel = std::make_unique<juce::Label>("Resonance", "Resonance");
+	resoLabel->setSize(100, 25);
+	resoLabel->setTopLeftPosition(817, 610);
+	addAndMakeVisible(resoLabel.get());
 
 	amtSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::RotaryVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox);
 	amtSlider->setSize(64, 64);
-	amtSlider->setTopLeftPosition(875, 550);
+	amtSlider->setTopLeftPosition(925, 550);
+	amtSlider->setRange(0, 5000);
 	addAndMakeVisible(amtSlider.get());
 
+	amtLabel = std::make_unique<juce::Label>("Amount", "Amount");
+	amtLabel->setSize(100, 25);
+	amtLabel->setTopLeftPosition(925, 610);
+	addAndMakeVisible(amtLabel.get());
+
+	vuMeter = std::make_unique<VUMeter>();
+	vuMeter->setSize(128, 128);
+	vuMeter->setTopLeftPosition(567, 667);
+	addAndMakeVisible(vuMeter.get());
+
+	sampleEditor = std::make_unique<SampleEditor>(audioProcessor.fmtMgr.get());
+	sampleEditor->setTopLeftPosition(34, 34);
+	sampleEditor->setSize(1190, 254);	
+	addAndMakeVisible(sampleEditor.get());
+	/*
 	driveSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::RotaryVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox);
 	driveSlider->setSize(64, 64);
-	driveSlider->setTopLeftPosition(950, 550);
+	driveSlider->setTopLeftPosition(1025, 550);
 	addAndMakeVisible(driveSlider.get());
-	
+	*/
+
 	loadButton->addListener(this);
 	loadSetButton->addListener(this);
 	saveSetButton->addListener(this);
@@ -88,16 +117,15 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	cutoffSlider->addListener(this);
 	resoSlider->addListener(this);
 	amtSlider->addListener(this);
-	driveSlider->addListener(this);
+	// driveSlider->addListener(this);
 	
 }
 
 SamAudioProcessorEditor::~SamAudioProcessorEditor()
 {
+	audioProcessor.state.removeListener(this);
 	setLookAndFeel(nullptr);
 	keyboard = nullptr;
-	cache = nullptr;
-	thumbnail = nullptr;
 	ampEnvelope = nullptr;
 	filterEnvelope = nullptr;
 	loadButton = nullptr;
@@ -109,34 +137,26 @@ SamAudioProcessorEditor::~SamAudioProcessorEditor()
 	resoSlider = nullptr;
 	amtSlider = nullptr;
 	driveSlider = nullptr;
+	cutoffLabel = nullptr;
+	resoLabel = nullptr;
+	amtLabel = nullptr;
+	driveLabel = nullptr;
+	sampleEditor = nullptr;
 }
 
 //==============================================================================
 void SamAudioProcessorEditor::paint(juce::Graphics& g)
 {
+	/**/
 	// (Our component is opaque, so we must completely fill the background with a solid colour)
 	g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
 	g.drawImageAt(juce::ImageCache::getFromMemory(BinaryData::sam_png, BinaryData::sam_pngSize), 0, 0);
 
-	g.setColour(juce::Colours::white);
 	g.setFont(15.0f);
-	juce::Rectangle<int> tb = juce::Rectangle<int>(30, 30, 1193, 262);
-	g.setColour(juce::Colours::black);
-	g.fillRect(tb);
+
 	g.setColour(juce::Colours::orange);
-
-
-	if (this->thumbnail != nullptr && audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
-		float size = audioProcessor.samplers[audioProcessor.currentSampleIndex]->getSampleLength() / audioProcessor.sampleRate;
-		this->thumbnail->drawChannels(g, tb, 0, size, 1);
-	}
-
-	if (audioProcessor.samplers[audioProcessor.currentSampleIndex] == nullptr) {
-		g.drawText("No sample assigned.", getWidth() / 2 - g.getCurrentFont().getStringWidth("No sample assigned.") / 2, 140, 150, 50, juce::Justification::centred);
-	}
 	
-	g.setColour(juce::Colours::white);
-	g.drawLine(samplePosX  +  30, 30, samplePosX  + 30, 262);
+	
 }
 
 void SamAudioProcessorEditor::resized()
@@ -149,6 +169,7 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 {
 	if (!isTimerRunning()) {
 		startTimerHz(50);
+		sampleEditor->startTimerHz(50);
 	}
 	audioProcessor.currentSampleIndex = midiNoteNumber;
 	if (audioProcessor.samplers[midiNoteNumber] != nullptr) {
@@ -159,26 +180,27 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 			lock.exit();
 			noteLabel->setText("current : " + juce::String(midiNoteNumber), juce::NotificationType::dontSendNotification);
 			// audioProcessor.samplers[midiNoteNumber]->play();
-			ampEnvelope->adsr = audioProcessor.samplers[audioProcessor.currentSampleIndex]->envelope;
-
-			this->thumbnail->reset(2, audioProcessor.sampleRate);
+			ampEnvelope->adsr = audioProcessor.samplers[midiNoteNumber]->envelope;
+			filterEnvelope->adsr = audioProcessor.filterEnvelope.get();
 			this->loopButton->setToggleState(audioProcessor.samplers[midiNoteNumber]->isLoop(), juce::NotificationType::dontSendNotification);
 			if (audioProcessor.samplers[midiNoteNumber]->hasSample()) {
-				thumbnail->addBlock(0, *audioProcessor.samplers[midiNoteNumber]->getSampleBuffer(), 0, static_cast<int>(audioProcessor.samplers[midiNoteNumber]->getSampleLength()));
+				sampleEditor->setSampler(audioProcessor.samplers[midiNoteNumber]);
 			}
-
-			float a = audioProcessor.samplers[audioProcessor.currentSampleIndex]->envelope->getParameters().attack;
-			float d = audioProcessor.samplers[audioProcessor.currentSampleIndex]->envelope->getParameters().decay;
-			float s = audioProcessor.samplers[audioProcessor.currentSampleIndex]->envelope->getParameters().sustain;
-			float r = audioProcessor.samplers[audioProcessor.currentSampleIndex]->envelope->getParameters().release;
+			float a = audioProcessor.samplers[midiNoteNumber]->envelope->getParameters().attack;
+			float d = audioProcessor.samplers[midiNoteNumber]->envelope->getParameters().decay;
+			float s = audioProcessor.samplers[midiNoteNumber]->envelope->getParameters().sustain;
+			float r = audioProcessor.samplers[midiNoteNumber]->envelope->getParameters().release;
 
 			ampEnvelope->setADSR(a, d, s, r);
-
+			sampleEditor->repaint();
 			repaint();
 			ampEnvelope->repaint();
 			lock.exit();
 		};
 		juce::MessageManager::callAsync(changeLambda);
+	}
+	else {
+		sampleEditor->setSampler(nullptr);
 	}
 
 }
@@ -306,14 +328,25 @@ void SamAudioProcessorEditor::timerCallback()
 	if (audioProcessor.samplers[audioProcessor.currentSampleIndex] == nullptr) {
 		return;
 	}
-	samplePosX = (float)(audioProcessor.samplers[audioProcessor.currentSampleIndex]->getCurrentPosition() / (float)audioProcessor.samplers[audioProcessor.currentSampleIndex]->getSampleLength()) * 1193;
 	
+	vuMeter->magnitude = audioProcessor.magnitude;
 	repaint();	
 
 }
 
 void SamAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
 {
+	if (slider == cutoffSlider.get()) {
+		audioProcessor.cutoff = cutoffSlider->getValue();
+	}
+	else if (slider == resoSlider.get()) {
+		audioProcessor.resonance = resoSlider->getValue();
+	}
+	else if (slider == amtSlider.get()) {
+		audioProcessor.amount = amtSlider->getValue();
+	}
+	audioProcessor.lpfLeftStage1->coefficients(audioProcessor.sampleRate, audioProcessor.cutoff, audioProcessor.resonance);
+
 }
 
 

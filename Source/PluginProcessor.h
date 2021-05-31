@@ -11,6 +11,7 @@
 #include <JuceHeader.h>
 #include "AudioEngine/Sampler.h"
 #include "AudioEngine/ADSR.h"
+#include "AudioEngine/MultimodeFilter.h"
 
 class SamAudioProcessorEditor;
 //==============================================================================
@@ -60,9 +61,22 @@ public:
     Sampler* samplers[128];
     int bufferSize;
     double sampleRate;
-    SynthLab::ADSR* ampEnv = nullptr;
+    std::unique_ptr <juce::ADSR> filterEnvelope = nullptr;
     bool voices[128];
     int numVoices = 0;
+
+    std::unique_ptr<MultimodeFilter> lpfLeftStage1 = nullptr;
+    std::unique_ptr<MultimodeFilter> lpfRightStage1 = nullptr;
+
+    float cutoff = 22000.0f;
+    float resonance = 0.1f;
+    float amount = 1000.0f;
+    float magnitude = 0;
+    long currentSample = 0;
+
+    std::unique_ptr<Sampler> defaultSampler = nullptr;
+    juce::MidiKeyboardState state;
+
 private:
     float envValue = 0;
     juce::AudioSampleBuffer* tempBuffer = nullptr;

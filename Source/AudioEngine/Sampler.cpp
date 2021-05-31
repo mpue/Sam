@@ -150,7 +150,7 @@ void Sampler::loadSample(File file) {
 	reader->read(sampleBuffer, 0, static_cast<int>(reader->lengthInSamples), 0, true, true);
 	juce::Logger::getCurrentLogger()->writeToLog("Sample rate : " + juce::String(reader->sampleRate));
 	sampleLength = reader->lengthInSamples;
-	endPosition = sampleLength;
+	endPosition = sampleLength / 2;
 	startPosition = 0;
 	currentSample = 0;
 	loaded = true;

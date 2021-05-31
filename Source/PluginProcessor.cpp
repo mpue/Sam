@@ -23,8 +23,6 @@ SamAudioProcessor::SamAudioProcessor()
 {
 	fmtMgr = std::make_unique<juce::AudioFormatManager>();
 	fmtMgr->registerBasicFormats();
-	ampEnv = new SynthLab::ADSR();
-	ampEnv->setModAmount(1.0f);
 }
 
 SamAudioProcessor::~SamAudioProcessor()
@@ -32,7 +30,8 @@ SamAudioProcessor::~SamAudioProcessor()
 	for (int i = 0; i < 128; i++) {
 		delete samplers[i];
 	}
-	delete ampEnv;
+	filterEnvelope = nullptr;
+	defaultSampler = nullptr;
 	delete tempBuffer;
 }
 
@@ -111,6 +110,15 @@ void SamAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 		voices[i] = false;
 	}
 	tempBuffer = new juce::AudioSampleBuffer(2, samplesPerBlock);
+
+	lpfLeftStage1 = std::make_unique<MultimodeFilter>();
+	lpfRightStage1 = std::make_unique<MultimodeFilter>();
+
+	lpfLeftStage1->coefficients(sampleRate, cutoff, resonance);
+	lpfRightStage1->coefficients(sampleRate, cutoff, resonance);
+	filterEnvelope = std::make_unique<juce::ADSR>();
+	filterEnvelope->setSampleRate(sampleRate * 5);
+	defaultSampler = std::make_unique<Sampler>(sampleRate,bufferSize);
 }
 
 void SamAudioProcessor::releaseResources()
@@ -151,11 +159,6 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 	auto totalNumInputChannels = getTotalNumInputChannels();
 	auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-	if (editor == nullptr) {
-		editor = dynamic_cast<SamAudioProcessorEditor*>(getActiveEditor());	
-	}
-
-
 	// In case we have more outputs than inputs, this code clears any output
 	// channels that didn't contain input data, (because these aren't
 	// guaranteed to be empty - they may contain garbage).
@@ -177,8 +180,8 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 
 		// ..do something to the data...
 	}
-	
-	
+
+
 	for (int j = 0; j < 128; j++) {
 		if (samplers[j] != nullptr) {
 
@@ -190,13 +193,49 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 				float left = samplers[j]->getCurrentSample(0) * envValue;
 				float right = samplers[j]->getCurrentSample(1) * envValue;
 
+				float defaultLeft = defaultSampler->getCurrentSample(0) * envValue;
+				float defaultRight = defaultSampler->getCurrentSample(1) * envValue;
+
 				buffer.addSample(0, i, left);
 				buffer.addSample(1, i, right);
+
+				buffer.addSample(0, i, defaultLeft);
+				buffer.addSample(1, i, defaultRight);
 
 			}
 		}
 
 	}
+
+	for (int i = 0; i < bufferSize; i++) {
+
+		defaultSampler->nextSample();
+
+		float defaultLeft = defaultSampler->getCurrentSample(0) * envValue;
+		float defaultRight = defaultSampler->getCurrentSample(1) * envValue;
+
+		buffer.addSample(0, i, defaultLeft);
+		buffer.addSample(1, i, defaultRight);
+
+	}
+
+
+	if (filterEnvelope != nullptr) {
+		float f = filterEnvelope->getNextSample() * amount + cutoff;
+		if (f < 0) {
+			f = 0;
+		}
+		lpfLeftStage1->coefficients(sampleRate, f, resonance);
+	}
+
+	currentSample = (currentSample + bufferSize) % buffer.getNumSamples();
+
+	magnitude = buffer.getMagnitude(currentSample, bufferSize);
+
+	float* leftOut = buffer.getWritePointer(0);
+	float* rightOut = buffer.getWritePointer(1);
+
+	lpfLeftStage1->processStereo(leftOut, rightOut, buffer.getNumSamples());
 
 	juce::MidiMessage m;
 	int time;
@@ -207,16 +246,18 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 		if (m.isNoteOn())
 		{
 			numVoices++;
+
+			if (numVoices == 0) {
+				filterEnvelope->noteOn();
+			}
+
 			if (samplers[m.getNoteNumber()] != nullptr) {
 				samplers[m.getNoteNumber()]->envelope->noteOn(); //(m.getVelocity());
 				samplers[m.getNoteNumber()]->setCurrentSample(0);
 				samplers[m.getNoteNumber()]->play();
 				voices[m.getNoteNumber()] = true;
 			}
-			if (editor != nullptr) {
-				editor->state.noteOn(m.getChannel(), m.getNoteNumber(), m.getVelocity() / 128);
-			}
-
+			state.noteOn(m.getChannel(), m.getNoteNumber(), m.getVelocity() / 128);
 		}
 		if (m.isNoteOff())
 		{
@@ -224,17 +265,20 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 			if (numVoices > 0) {
 				numVoices--;
 			}
+			else {
+				filterEnvelope->noteOff();
+			}
 
 			if (samplers[m.getNoteNumber()] != nullptr) {
 				//samplers[m.getNoteNumber()]->stop();
-				
+
 				samplers[m.getNoteNumber()]->envelope->noteOff();
 				voices[m.getNoteNumber()] = false;
 			}
 
-			if (editor != nullptr) {
-				editor->state.noteOff(m.getChannel(), m.getNoteNumber(), m.getVelocity() / 128);
-			}
+
+			state.noteOff(m.getChannel(), m.getNoteNumber(), m.getVelocity() / 128);
+
 
 		}
 		if (m.isAftertouch())

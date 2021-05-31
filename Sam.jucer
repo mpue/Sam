@@ -23,6 +23,7 @@
       <FILE id="IuuhhT" name="oscillator_square_48.png" compile="0" resource="1"
             file="images/oscillator_square_48.png"/>
       <FILE id="nE09Q4" name="sam.png" compile="0" resource="1" file="images/sam.png"/>
+      <FILE id="WZhQHt" name="vintage_vu.png" compile="0" resource="1" file="images/vintage_vu.png"/>
     </GROUP>
     <GROUP id="{369CBED0-7B33-D04B-305B-90049F8C1F26}" name="Source">
       <GROUP id="{A898B61B-8004-376A-35C8-7E8A2DCF217A}" name="UI">
@@ -30,14 +31,23 @@
               file="Source/UI/CustomLookAndFeel.cpp"/>
         <FILE id="NEOahB" name="CustomLookAndFeel.h" compile="0" resource="0"
               file="Source/UI/CustomLookAndFeel.h"/>
+        <FILE id="cqd3Xc" name="ExtendedFileBrowser.cpp" compile="1" resource="0"
+              file="Source/UI/ExtendedFileBrowser.cpp"/>
+        <FILE id="GUFZHh" name="ExtendedFileBrowser.h" compile="0" resource="0"
+              file="Source/UI/ExtendedFileBrowser.h"/>
         <FILE id="choiiU" name="GraphicalEnvelope.cpp" compile="1" resource="0"
               file="Source/UI/GraphicalEnvelope.cpp"/>
         <FILE id="FFg233" name="GraphicalEnvelope.h" compile="0" resource="0"
               file="Source/UI/GraphicalEnvelope.h"/>
+        <FILE id="j2mqDB" name="SampleEditor.cpp" compile="1" resource="0"
+              file="Source/UI/SampleEditor.cpp"/>
+        <FILE id="u7XaLU" name="SampleEditor.h" compile="0" resource="0" file="Source/UI/SampleEditor.h"/>
         <FILE id="NMWYJj" name="TrioLookAndFeel.cpp" compile="1" resource="0"
               file="Source/UI/TrioLookAndFeel.cpp"/>
         <FILE id="psbccP" name="TrioLookAndFeel.h" compile="0" resource="0"
               file="Source/UI/TrioLookAndFeel.h"/>
+        <FILE id="yoAv53" name="VUMeter.cpp" compile="1" resource="0" file="Source/UI/VUMeter.cpp"/>
+        <FILE id="JzWqwF" name="VUMeter.h" compile="0" resource="0" file="Source/UI/VUMeter.h"/>
       </GROUP>
       <GROUP id="{AA4FBEFC-370A-C66F-70FA-776839F6A7B1}" name="AudioEngine">
         <FILE id="b2WteF" name="ADSR.cpp" compile="1" resource="0" file="Source/AudioEngine/ADSR.cpp"/>
