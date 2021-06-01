@@ -90,6 +90,13 @@ void SampleEditor::mouseDown(const juce::MouseEvent& event)
 		deltaX = 0;
 		originX = sampleEndPosX;
 	}
+	else if (abs(p.x - sampleStartPosX) < 5) {
+		draggingStart = true;
+		dragStartX = p.x;
+		deltaX = 0;
+		originX = sampleStartPosX;
+	}
+
 	else {
 		setMouseCursor(juce::MouseCursor::NormalCursor);
 	}
@@ -97,10 +104,6 @@ void SampleEditor::mouseDown(const juce::MouseEvent& event)
 
 void SampleEditor::mouseUp(const juce::MouseEvent& event)
 {
-	if (draggingEnd) {
-		sampler->setEndPosition(sampleEndPosX * sampler->getSampleLength() / getWidth());
-	}
-
 	draggingEnd = false;
 	draggingStart = false;
 	startTimerHz(50);
@@ -113,6 +116,13 @@ void SampleEditor::mouseDrag(const juce::MouseEvent& event)
 	if (draggingEnd) {
 		deltaX = p.x - dragStartX;
 		sampleEndPosX = originX + deltaX;
+		sampler->setEndPosition(sampleEndPosX * sampler->getSampleLength() / getWidth());
+		repaint();
+	}
+	if (draggingStart) {
+		deltaX = p.x - dragStartX;
+		sampleStartPosX = originX + deltaX;
+		sampler->setStartPosition(sampleStartPosX * sampler->getSampleLength() / getWidth());
 		repaint();
 	}
 }
@@ -121,7 +131,7 @@ void SampleEditor::mouseMove(const juce::MouseEvent& event)
 {
 	juce::Point<float> p = event.position;// getLocalPoint(this, event.position);
 
-	if (abs(p.x - sampleEndPosX) < 5) {
+	if (abs(p.x - sampleEndPosX) < 5 || abs(p.x - sampleStartPosX) < 5) {
 		setMouseCursor(juce::MouseCursor::LeftRightResizeCursor);
 	}
 	else {

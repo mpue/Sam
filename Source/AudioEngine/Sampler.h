@@ -79,6 +79,10 @@ public:
        
     virtual void setPitch(float pitch);
     
+    float getPitchAsFloat() {
+        return pitch;
+    }
+
     bool isPlaying() {
         return playing;
     }

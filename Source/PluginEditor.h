@@ -61,7 +61,7 @@ public:
     std::unique_ptr <VUMeter> vuMeter = nullptr;
     std::unique_ptr <ExtendedFileBrowser> browser = nullptr;
     std::unique_ptr <SampleEditor> sampleEditor = nullptr;
-
+    std::unique_ptr <juce::Slider> pitchSlider = nullptr;
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.

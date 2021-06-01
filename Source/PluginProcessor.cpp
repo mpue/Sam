@@ -253,7 +253,12 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 
 			if (samplers[m.getNoteNumber()] != nullptr) {
 				samplers[m.getNoteNumber()]->envelope->noteOn(); //(m.getVelocity());
-				samplers[m.getNoteNumber()]->setCurrentSample(0);
+				if (samplers[m.getNoteNumber()]->isLoop()) {
+
+				}
+				else {
+					samplers[m.getNoteNumber()]->setCurrentSample(0);
+				}
 				samplers[m.getNoteNumber()]->play();
 				voices[m.getNoteNumber()] = true;
 			}

@@ -56,6 +56,14 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	loopButton->setTopLeftPosition(42, 300);
 	addAndMakeVisible(loopButton.get());
 
+	pitchSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::LinearHorizontal, juce::Slider::TextEntryBoxPosition::TextBoxRight);
+	pitchSlider->setSize(400, 24);
+	pitchSlider->setTopLeftPosition(100, 300);
+	pitchSlider->setRange(0.25, 2);
+	pitchSlider->setOpaque(false);
+	pitchSlider->setValue(1);
+	addAndMakeVisible(pitchSlider.get());
+
 	noteLabel = std::make_unique<juce::Label>("None");
 	noteLabel->setSize(100, 25);
 	noteLabel->setTopLeftPosition(10, 255);
@@ -117,6 +125,7 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	cutoffSlider->addListener(this);
 	resoSlider->addListener(this);
 	amtSlider->addListener(this);
+	pitchSlider->addListener(this);
 	// driveSlider->addListener(this);
 	
 }
@@ -142,6 +151,7 @@ SamAudioProcessorEditor::~SamAudioProcessorEditor()
 	amtLabel = nullptr;
 	driveLabel = nullptr;
 	sampleEditor = nullptr;
+	pitchSlider = nullptr;
 }
 
 //==============================================================================
@@ -190,7 +200,7 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 			float d = audioProcessor.samplers[midiNoteNumber]->envelope->getParameters().decay;
 			float s = audioProcessor.samplers[midiNoteNumber]->envelope->getParameters().sustain;
 			float r = audioProcessor.samplers[midiNoteNumber]->envelope->getParameters().release;
-
+			pitchSlider->setValue(audioProcessor.samplers[midiNoteNumber]->getPitchAsFloat());
 			ampEnvelope->setADSR(a, d, s, r);
 			sampleEditor->repaint();
 			repaint();
@@ -266,6 +276,9 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 				else {
 					s->setLoop(false);
 				}
+				s->setStartPosition(v.getChild(i).getProperty("loopStart").toString().getLargeIntValue());
+				s->setEndPosition(v.getChild(i).getProperty("loopEnd").toString().getLargeIntValue());
+				s->setPitch(v.getChild(i).getProperty("pitch").toString().getFloatValue());
 
 				juce::ADSR::Parameters params;
 				params.attack = v.getChild(i).getProperty("amp_attack").toString().getFloatValue();
@@ -278,6 +291,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 				s->play();
 				int index = v.getChild(i).getProperty("note").toString().getIntValue();
 				audioProcessor.samplers[index] = s;
+
 			}
 
 		}
@@ -303,6 +317,9 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 					file.setProperty("amp_decay", audioProcessor.samplers[i]->envelope->getParameters().decay, nullptr);
 					file.setProperty("amp_sustain", audioProcessor.samplers[i]->envelope->getParameters().sustain, nullptr);
 					file.setProperty("amp_release", audioProcessor.samplers[i]->envelope->getParameters().release, nullptr);
+					file.setProperty("loopStart", audioProcessor.samplers[i]->getStartPosition(), nullptr);
+					file.setProperty("loopEnd", audioProcessor.samplers[i]->getEndPosition(), nullptr);
+					file.setProperty("pitch", audioProcessor.samplers[i]->getPitchAsFloat(), nullptr);
 
 					audioFiles.addChild(file, -1, nullptr);
 				}
@@ -345,6 +362,12 @@ void SamAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
 	else if (slider == amtSlider.get()) {
 		audioProcessor.amount = amtSlider->getValue();
 	}
+	else if (slider == pitchSlider.get()) {
+		if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
+			audioProcessor.samplers[audioProcessor.currentSampleIndex]->setPitch(pitchSlider->getValue());
+		}
+	}
+
 	audioProcessor.lpfLeftStage1->coefficients(audioProcessor.sampleRate, audioProcessor.cutoff, audioProcessor.resonance);
 
 }
