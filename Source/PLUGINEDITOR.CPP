@@ -221,6 +221,12 @@ void SamAudioProcessorEditor::handleNoteOff(juce::MidiKeyboardState* source, int
 	if (audioProcessor.samplers[midiNoteNumber] != nullptr) {
 		audioProcessor.samplers[midiNoteNumber]->stop();
 	}
+	if (audioProcessor.numVoices == 0) {
+		stopTimer();
+
+		// audioProcessor.samplers[midiNoteNumber]->stop();
+
+	}
 }
 
 void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
@@ -345,7 +351,7 @@ void SamAudioProcessorEditor::timerCallback()
 	if (audioProcessor.samplers[audioProcessor.currentSampleIndex] == nullptr) {
 		return;
 	}
-	
+	cutoffSlider->setValue(audioProcessor.cutoff);
 	vuMeter->magnitude = audioProcessor.magnitude;
 	repaint();	
 

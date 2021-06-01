@@ -38,6 +38,9 @@ void SampleEditor::paint(juce::Graphics& g)
 		juce::Line<float> startPosIndicator = juce::Line<float>(sampleStartPosX, 0, sampleStartPosX, getHeight());
 		juce::Line<float> endPosIndicator = juce::Line<float>(sampleEndPosX, 0, sampleEndPosX, getHeight());
 		this->thumbnail->drawChannels(g, tb, 0, sampleLength, 1);		
+		g.setColour(juce::Colour::fromFloatRGBA(1.0f, 1.0f, 1.0f, 0.3f));
+		g.fillRect(0.0f, 0.0f, sampleStartPosX, (float)getHeight());
+		g.fillRect(sampleEndPosX, 0.0f, (float)getWidth(), (float)getHeight());
 		g.setColour(juce::Colours::white);
 		g.drawLine(samplePosIndicator, 3);
 		g.setColour(juce::Colours::green);

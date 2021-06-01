@@ -118,7 +118,7 @@ void SamAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	lpfRightStage1->coefficients(sampleRate, cutoff, resonance);
 	filterEnvelope = std::make_unique<juce::ADSR>();
 	filterEnvelope->setSampleRate(sampleRate * 5);
-	defaultSampler = std::make_unique<Sampler>(sampleRate,bufferSize);
+	defaultSampler = std::make_unique<Sampler>(sampleRate, bufferSize);
 }
 
 void SamAudioProcessor::releaseResources()
@@ -254,7 +254,7 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 			if (samplers[m.getNoteNumber()] != nullptr) {
 				samplers[m.getNoteNumber()]->envelope->noteOn(); //(m.getVelocity());
 				if (samplers[m.getNoteNumber()]->isLoop()) {
-
+					samplers[m.getNoteNumber()]->setCurrentSample(samplers[m.getNoteNumber()]->getStartPosition());
 				}
 				else {
 					samplers[m.getNoteNumber()]->setCurrentSample(0);
@@ -272,6 +272,7 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 			}
 			else {
 				filterEnvelope->noteOff();
+				
 			}
 
 			if (samplers[m.getNoteNumber()] != nullptr) {
@@ -294,6 +295,12 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 		}
 		if (m.isController()) {
 
+			juce::Logger::getCurrentLogger()->writeToLog("controller " + juce::String(m.getControllerNumber()) + " value " + juce::String(m.getControllerValue()));
+			if (m.getControllerNumber() == 40) {
+				cutoff = (20000.0f / 127.0f) * m.getControllerValue();
+				lpfLeftStage1->coefficients(sampleRate, cutoff, resonance);
+			}
+			
 			// Modulation wheel
 			if (m.getControllerNumber() == 1) {
 
