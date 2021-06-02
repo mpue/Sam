@@ -34,9 +34,13 @@ public:
 	void mouseDrag(const juce::MouseEvent& event) override;
 	void mouseMove(const juce::MouseEvent& event) override;
 private:
-    Sampler* sampler;
+    Sampler* sampler = nullptr;
     float samplePosX = 0;
     float sampleStartPosX = 0;
+    float zoom = 1;
+    float zoomStart = 1;
+    float offset = 0;
+    float offsetStart = 0;
     float sampleEndPosX = 0;
     bool draggingStart = false;
     bool draggingEnd = false;

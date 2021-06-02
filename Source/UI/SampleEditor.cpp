@@ -18,7 +18,7 @@ SampleEditor::SampleEditor(juce::AudioFormatManager* fmtMgr)
 	// initialise any special settings that your component needs.
 	cache = std::make_unique<juce::AudioThumbnailCache>(1);
 	thumbnail = std::make_unique<juce::AudioThumbnail>(4, *fmtMgr, *cache.get());
-	addMouseListener(this,true);
+	addMouseListener(this, true);
 }
 
 SampleEditor::~SampleEditor()
@@ -34,18 +34,27 @@ void SampleEditor::paint(juce::Graphics& g)
 	g.fillRect(tb);
 	g.setColour(juce::Colours::orange);
 	if (sampler != nullptr) {
-		juce::Line<float> samplePosIndicator = juce::Line<float>(samplePosX, 0, samplePosX, getHeight());
-		juce::Line<float> startPosIndicator = juce::Line<float>(sampleStartPosX, 0, sampleStartPosX, getHeight());
-		juce::Line<float> endPosIndicator = juce::Line<float>(sampleEndPosX, 0, sampleEndPosX, getHeight());
-		this->thumbnail->drawChannels(g, tb, 0, sampleLength, 1);		
+		float scaledSamplePosX = samplePosX / zoom - offset;
+		float scaledSampleStartPosX = sampleStartPosX / zoom - offset;
+		float scaledSampleEndPosX = sampleEndPosX / zoom - offset;
+
+		juce::Line<float> samplePosIndicator = juce::Line<float>(scaledSamplePosX, 0, scaledSamplePosX, getHeight());
+		juce::Line<float> startPosIndicator = juce::Line<float>(scaledSampleStartPosX, 0, scaledSampleStartPosX, getHeight());
+		juce::Line<float> endPosIndicator = juce::Line<float>(scaledSampleEndPosX, 0, scaledSampleEndPosX, getHeight());
+		juce::Line<float> startPosIndicatorArrow = juce::Line<float>(scaledSampleStartPosX, 0, scaledSampleStartPosX, 12);
+		juce::Line<float> endPosIndicatorArrow = juce::Line<float>(scaledSampleEndPosX, 0, scaledSampleEndPosX, 12);
+		float scaledOffset = (offset * ((float)sampler->getSampleLength()) / sampler->getSampleRate()) / getWidth();
+		this->thumbnail->drawChannels(g, tb, scaledOffset * zoom, (sampleLength + scaledOffset) * zoom, 1);
 		g.setColour(juce::Colour::fromFloatRGBA(1.0f, 1.0f, 1.0f, 0.3f));
-		g.fillRect(0.0f, 0.0f, sampleStartPosX, (float)getHeight());
-		g.fillRect(sampleEndPosX, 0.0f, (float)getWidth(), (float)getHeight());
+		//		g.fillRect(0.0f, 0.0f, (sampleStartPosX - offset ) * zoom , (float)getHeight());
+				//g.fillRect((sampleEndPosX - offset) * zoom , 0.0f, (float)getWidth(), (float)getHeight());
 		g.setColour(juce::Colours::white);
 		g.drawLine(samplePosIndicator, 3);
 		g.setColour(juce::Colours::green);
 		g.drawLine(startPosIndicator, 3);
-		g.setColour(juce::Colours::green);
+		g.drawArrow(startPosIndicatorArrow, 3, 16, 16);
+		g.setColour(juce::Colours::red);
+		g.drawArrow(endPosIndicatorArrow, 3, 16, 16);
 		g.drawLine(endPosIndicator, 3);
 	}
 	else {
@@ -65,8 +74,8 @@ void SampleEditor::reset(double sampleRate)
 void SampleEditor::timerCallback()
 {
 	if (sampler != nullptr) {
-		samplePosX = (float)(sampler->getCurrentPosition() / (float)sampler->getSampleLength()) * getWidth();
-		
+		samplePosX = ((float)(sampler->getCurrentPosition() / (float)sampler->getSampleLength()) * getWidth());
+
 		sampleStartPosX = (float)(sampler->getStartPosition() / (float)sampler->getSampleLength()) * getWidth();
 		sampleEndPosX = (float)(sampler->getEndPosition() / (float)sampler->getSampleLength()) * getWidth();
 	}
@@ -85,24 +94,30 @@ void SampleEditor::setSampler(Sampler* sampler)
 
 void SampleEditor::mouseDown(const juce::MouseEvent& event)
 {
-	juce::Point<float> p = event.position;// getLocalPoint(this, event.position);
 	stopTimer();
-	if (abs(p.x - sampleEndPosX) < 5) {		
-		draggingEnd = true;
-		dragStartX = p.x;
-		deltaX = 0;
-		originX = sampleEndPosX;
-	}
-	else if (abs(p.x - sampleStartPosX) < 5) {
-		draggingStart = true;
-		dragStartX = p.x;
-		deltaX = 0;
-		originX = sampleStartPosX;
+	if (event.mods.isLeftButtonDown()) {
+
+		juce::Point<float> p = event.position;// getLocalPoint(this, event.position);
+		if (abs(p.x - (sampleEndPosX / zoom - offset)) < 5) {
+			draggingEnd = true;
+			dragStartX = p.x;
+			deltaX = 0;
+			originX = sampleEndPosX;
+		}
+		else if (abs(p.x - (sampleStartPosX / zoom - offset)) < 5) {
+			draggingStart = true;
+			dragStartX = p.x;
+			deltaX = 0;
+			originX = sampleStartPosX;
+		}
+
+		else {
+			setMouseCursor(juce::MouseCursor::NormalCursor);
+		}
 	}
 
-	else {
-		setMouseCursor(juce::MouseCursor::NormalCursor);
-	}
+	zoomStart = zoom;
+	offsetStart = offset;
 }
 
 void SampleEditor::mouseUp(const juce::MouseEvent& event)
@@ -116,25 +131,47 @@ void SampleEditor::mouseDrag(const juce::MouseEvent& event)
 {
 	juce::Point<float> p = event.position;//  getLocalPoint(this, event.position);
 
-	if (draggingEnd) {
-		deltaX = p.x - dragStartX;
-		sampleEndPosX = originX + deltaX;
-		sampler->setEndPosition(sampleEndPosX * sampler->getSampleLength() / getWidth());
+	if (event.mods.isRightButtonDown()) {
+		zoom = zoomStart - (float)event.getDistanceFromDragStartX() / 100.0f;
+		repaint();
+
+	}
+	else if (event.mods.isMiddleButtonDown()) {
+		offset = offsetStart - (float)event.getDistanceFromDragStartX();
 		repaint();
 	}
-	if (draggingStart) {
-		deltaX = p.x - dragStartX;
-		sampleStartPosX = originX + deltaX;
-		sampler->setStartPosition(sampleStartPosX * sampler->getSampleLength() / getWidth());
-		repaint();
+
+	else {
+		if (draggingEnd) {
+			deltaX = p.x - dragStartX;
+			sampleEndPosX = originX + deltaX * zoom;
+			if (sampleEndPosX > sampler->getSampleLength()) {
+				sampleEndPosX = sampler->getSampleLength();
+			}
+			sampler->setEndPosition(sampleEndPosX * sampler->getSampleLength() / getWidth());
+			repaint();
+		}
+		if (draggingStart) {
+			deltaX = p.x - dragStartX;
+			sampleStartPosX = originX + deltaX * zoom;
+			if (sampleStartPosX < 0) {
+				sampleStartPosX = 0;
+			}
+			sampler->setStartPosition(sampleStartPosX * sampler->getSampleLength() / getWidth());
+			repaint();
+		}
 	}
+
+
 }
 
 void SampleEditor::mouseMove(const juce::MouseEvent& event)
 {
 	juce::Point<float> p = event.position;// getLocalPoint(this, event.position);
 
-	if (abs(p.x - sampleEndPosX) < 5 || abs(p.x - sampleStartPosX) < 5) {
+	juce::Logger::getCurrentLogger()->writeToLog(juce::String(abs(p.x - (sampleEndPosX / zoom - offset))));
+
+	if (abs(p.x - (sampleStartPosX / zoom - offset)) < 5 || abs(p.x - (sampleEndPosX / zoom - offset)) < 5) {
 		setMouseCursor(juce::MouseCursor::LeftRightResizeCursor);
 	}
 	else {

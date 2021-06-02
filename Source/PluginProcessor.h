@@ -61,7 +61,7 @@ public:
     Sampler* samplers[128];
     int bufferSize;
     double sampleRate;
-    std::unique_ptr <juce::ADSR> filterEnvelope = nullptr;
+    juce::ADSR* filterEnvelope = nullptr;
     bool voices[128];
     int numVoices = 0;
 
@@ -70,7 +70,7 @@ public:
 
     float cutoff = 22000.0f;
     float resonance = 0.1f;
-    float amount = 1000.0f;
+    float amount = 1.0f;
     float magnitude = 0;
     long currentSample = 0;
 

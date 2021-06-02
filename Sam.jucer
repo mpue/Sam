@@ -31,6 +31,9 @@
               file="Source/UI/CustomLookAndFeel.cpp"/>
         <FILE id="NEOahB" name="CustomLookAndFeel.h" compile="0" resource="0"
               file="Source/UI/CustomLookAndFeel.h"/>
+        <FILE id="HLVp4R" name="EnvelopePanel.cpp" compile="1" resource="0"
+              file="Source/UI/EnvelopePanel.cpp"/>
+        <FILE id="IEMetX" name="EnvelopePanel.h" compile="0" resource="0" file="Source/UI/EnvelopePanel.h"/>
         <FILE id="cqd3Xc" name="ExtendedFileBrowser.cpp" compile="1" resource="0"
               file="Source/UI/ExtendedFileBrowser.cpp"/>
         <FILE id="GUFZHh" name="ExtendedFileBrowser.h" compile="0" resource="0"

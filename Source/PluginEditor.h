@@ -10,7 +10,7 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
-#include "UI/GraphicalEnvelope.h"
+#include "UI/EnvelopePanel.h"
 #include "UI/CustomLookAndFeel.h"
 #include "UI/VUMeter.h"
 #include "UI/ExtendedFileBrowser.h"
@@ -41,10 +41,12 @@ public:
     void buttonClicked(juce::Button* button) override;    
     void timerCallback() override;
     void sliderValueChanged(juce::Slider* slider) override;
-
+    void saveSettings();
+    void loadSettings();
+    void loadFile(juce::File file);
     std::unique_ptr<juce::MidiKeyboardComponent> keyboard;
-    std::unique_ptr<GraphicalEnvelope> ampEnvelope = nullptr;
-    std::unique_ptr<GraphicalEnvelope> filterEnvelope = nullptr;
+    std::unique_ptr<EnvelopePanel> ampEnvelope = nullptr;
+    std::unique_ptr<EnvelopePanel> filterEnvelope = nullptr;
     std::unique_ptr <juce::Button> loadButton = nullptr;
     std::unique_ptr <juce::Button> loadSetButton = nullptr;
     std::unique_ptr <juce::Button> saveSetButton = nullptr;
@@ -67,6 +69,7 @@ private:
     // access the processor object that created it.
     CustomLookAndFeel tlf;
     SamAudioProcessor& audioProcessor;
+    juce::String currentFile;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamAudioProcessorEditor)
 };

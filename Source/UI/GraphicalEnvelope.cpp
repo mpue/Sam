@@ -174,33 +174,33 @@ void GraphicalEnvelope::mouseUp(const juce::MouseEvent& event) {
 void GraphicalEnvelope::mouseDrag(const juce::MouseEvent& event) {
 	juce::Point <float> pos = juce::Point<float>(event.getPosition().x - 5, event.getPosition().y - 5);
 
-	if (pos.x < 10)
-		pos.x = 10;
-	if (pos.x > getWidth() - 10)
-		pos.x = getWidth() - 10;
-	if (pos.y < 10)
-		pos.y = 10;
-	if (pos.y > getHeight() - 10)
-		pos.y = getHeight() - 10;
+	if (pos.x < 0)
+		pos.x = 0;
+	if (pos.x > getWidth() - 0)
+		pos.x = getWidth() - 0;
+	if (pos.y < 0)
+		pos.y = 0;
+	if (pos.y > getHeight() - 0)
+		pos.y = getHeight() - 0;
 
 	if (isInsideAttackHandler) {
 
-		if (pos.y > 10)
-			pos.y = 10;
+		if (pos.y > 0)
+			pos.y = 0;
 
 		pos.y = attackHandler->getPosition().y;
 
-		if (pos.x + 10 >= decayHandler->getPosition().x) {
-			pos.x = decayHandler->getPosition().x - 10;			
+		if (pos.x + 0 >= decayHandler->getPosition().x) {
+			pos.x = decayHandler->getPosition().x - 0;			
 		}
 		attackHandler->setPosition(pos);
 	}
 	if (isInsideDecayHandler) {
-		if (pos.x + 10 >= sustainHandler->getPosition().x) {
-			pos.x = sustainHandler->getPosition().x - 10;
+		if (pos.x + 0 >= sustainHandler->getPosition().x) {
+			pos.x = sustainHandler->getPosition().x - 0;
 		}
-		if (pos.x - 10 <= attackHandler->getPosition().x) {
-			pos.x = attackHandler->getPosition().x + 10;
+		if (pos.x - 0 <= attackHandler->getPosition().x) {
+			pos.x = attackHandler->getPosition().x + 0;
 		}
 		pos.y = decayHandler->getPosition().y;
 		decayHandler->setPosition(pos);
@@ -208,11 +208,11 @@ void GraphicalEnvelope::mouseDrag(const juce::MouseEvent& event) {
 	}
 	if (isInsideSustainHandler) {
 
-		if (pos.x + 10 >= releaseHandler->getPosition().x) {
-			pos.x = releaseHandler->getPosition().x - 10;
+		if (pos.x + 0 >= releaseHandler->getPosition().x) {
+			pos.x = releaseHandler->getPosition().x - 0;
 		}
-		if (pos.x - 10 <= decayHandler->getPosition().x) {
-			pos.x = decayHandler->getPosition().x + 10;
+		if (pos.x - 0 <= decayHandler->getPosition().x) {
+			pos.x = decayHandler->getPosition().x + 0;
 		}
 
 		decayHandler->setPosition(decayHandler->getPosition().x, pos.y);
@@ -221,21 +221,21 @@ void GraphicalEnvelope::mouseDrag(const juce::MouseEvent& event) {
 	}
 	if (isInsideReleaseHandler) {
 
-		if (pos.x - 10 <= sustainHandler->getPosition().x) {
-			pos.x = sustainHandler->getPosition().x + 10;
+		if (pos.x - 0 <= sustainHandler->getPosition().x) {
+			pos.x = sustainHandler->getPosition().x + 0;
 		}
-		if (pos.y < getHeight() - 10)
-			pos.y = getHeight() - 10;
+		if (pos.y < getHeight() - 0)
+			pos.y = getHeight() - 0;
 
 		releaseHandler->setPosition(pos);
 	}
 
 	repaint();
 
-	attack = (getWidth() / 400) * (attackHandler->getPosition().x) / 100;
-	decay =  (getWidth() / 400) * abs(decayHandler->getPosition().x - attackHandler->getPosition().x) / 100;
+	attack = (getWidth() / 4) * (attackHandler->getPosition().x);
+	decay =  (getWidth() / 4) * abs(decayHandler->getPosition().x - attackHandler->getPosition().x) ;
 	sustain = ((getHeight() - sustainHandler->getPosition().y) / getHeight());
-	release =  (getWidth() / 400) * abs(sustainHandler->getPosition().x - releaseHandler->getPosition().x) / 100;
+	release =  (getWidth() / 4) - abs(sustainHandler->getPosition().x);
 
 	updateModel();
 
@@ -271,8 +271,8 @@ void GraphicalEnvelope::setAttack(float attack) {
 	float x = 0;
 	if (attack >= 0) {
 		x = attack * (getWidth() / 4);
-		if (x < 10) {
-			x = 10;
+		if (x < 5) {
+			x = 5;
 		}
 	}
 
@@ -292,7 +292,7 @@ void GraphicalEnvelope::setDecay(float decay) {
 
 void GraphicalEnvelope::setSustain(float sustain) {
 	this->sustain = sustain;
-	float y = getHeight() - 10;
+	float y = getHeight() - 5;
 	float x = 0;
 	if (release >= 0) {
 		x = getWidth() / 4- (release * (getWidth() / 4));
@@ -301,7 +301,7 @@ void GraphicalEnvelope::setSustain(float sustain) {
 	if (sustain >= 0) {
 		y = getHeight() - (float)getHeight() * sustain;
 		if (y >= getHeight()) {
-			y = getHeight() - 10;
+			y = getHeight() - 5;
 		}
 	}
 	sustainHandler->setPosition(sustainHandler->getPosition().x, y);
@@ -319,38 +319,37 @@ void GraphicalEnvelope::setADSR(float a, float d, float s, float r)
 	this->sustain = s;
 	this->release = r;
 
-	float x = 0;
+	float attack_x = 0;
 	float y = 0;
 	float decay_x = 0;
+	float sustain_x = 0;
 
 	if (attack >= 0) {
-		x = attack * (getWidth() / 4);
-		if (x < 10) {
-			x = 10;
-		}
+		attack_x = attack * (getWidth() / 4);
 	}
 	
-	attackHandler->setPosition(x, 10);
+	attackHandler->setPosition(attack_x, 0);
 
 	if (decay >= 0) {
-		decay_x = decay * (getWidth() / 4) + attackHandler->getPosition().x;
+		decay_x = decay * (getWidth() / 4) + attack_x;
 	}
 
-	y = getHeight() - 10;
+	y = getHeight();
 
 	if (release >= 0) {
-		x = getWidth() / 4 - (release * (getWidth() / 4));
+		sustain_x = getWidth()  - (getWidth() / 4 * release);
 	}
 
 	if (sustain >= 0) {
 		y = getHeight() - (float)getHeight() * sustain;
 		if (y >= getHeight()) {
-			y = getHeight() - 10;
+			y = getHeight();
 		}
 	}
 	
-	sustainHandler->setPosition(sustainHandler->getPosition().x, y);
+	sustainHandler->setPosition(sustain_x, y);
 	decayHandler->setPosition(decay_x, sustainHandler->getPosition().y);
+	releaseHandler->setPosition(getWidth(), getHeight());
 
 
 }

@@ -116,8 +116,8 @@ void SamAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 
 	lpfLeftStage1->coefficients(sampleRate, cutoff, resonance);
 	lpfRightStage1->coefficients(sampleRate, cutoff, resonance);
-	filterEnvelope = std::make_unique<juce::ADSR>();
-	filterEnvelope->setSampleRate(sampleRate * 5);
+	filterEnvelope = new juce::ADSR();
+	filterEnvelope->setSampleRate(sampleRate/256);
 	defaultSampler = std::make_unique<Sampler>(sampleRate, bufferSize);
 }
 
@@ -221,7 +221,7 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 
 
 	if (filterEnvelope != nullptr) {
-		float f = filterEnvelope->getNextSample() * amount + cutoff;
+		float f = cutoff + (filterEnvelope->getNextSample() * amount * (22000 - cutoff));
 		if (f < 0) {
 			f = 0;
 		}
@@ -245,11 +245,12 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 
 		if (m.isNoteOn())
 		{
-			numVoices++;
 
 			if (numVoices == 0) {
 				filterEnvelope->noteOn();
 			}
+
+			numVoices++;
 
 			if (samplers[m.getNoteNumber()] != nullptr) {
 				samplers[m.getNoteNumber()]->envelope->noteOn(); //(m.getVelocity());
