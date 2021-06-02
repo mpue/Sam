@@ -50,6 +50,7 @@ public:
     std::unique_ptr <juce::Button> loadButton = nullptr;
     std::unique_ptr <juce::Button> loadSetButton = nullptr;
     std::unique_ptr <juce::Button> saveSetButton = nullptr;
+    std::unique_ptr <juce::Button> newSetButton = nullptr;
     std::unique_ptr <juce::Label> noteLabel = nullptr;
     std::unique_ptr <juce::ToggleButton> loopButton = nullptr;
     std::unique_ptr <juce::Slider> cutoffSlider = nullptr;

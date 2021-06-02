@@ -51,6 +51,11 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	saveSetButton->setTopLeftPosition(248, 5);
 	addAndMakeVisible(saveSetButton.get());
 
+	newSetButton = std::make_unique<juce::TextButton>("New set");
+	newSetButton->setSize(100, 20);
+	newSetButton->setTopLeftPosition(376, 5);
+	addAndMakeVisible(newSetButton.get());
+
 	loopButton = std::make_unique<juce::ToggleButton>("Loop");
 	loopButton->setSize(100, 20);
 	loopButton->setTopLeftPosition(42, 300);
@@ -121,6 +126,7 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	loadButton->addListener(this);
 	loadSetButton->addListener(this);
 	saveSetButton->addListener(this);
+	newSetButton->addListener(this);
 	loopButton->addListener(this);
 	cutoffSlider->addListener(this);
 	resoSlider->addListener(this);
@@ -141,6 +147,7 @@ SamAudioProcessorEditor::~SamAudioProcessorEditor()
 	loadButton = nullptr;
 	loadSetButton = nullptr;
 	saveSetButton = nullptr;
+	newSetButton = nullptr;
 	loopButton = nullptr;
 	noteLabel = nullptr;
 	cutoffSlider = nullptr;
@@ -235,7 +242,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 
 	if (button == loadButton.get()) {
 
-		juce::FileChooser chooser("Select module to open", juce::File("d:\\samples\\drums"), "*");
+		juce::FileChooser chooser("Select sample to add", juce::File("d:\\samples\\drums"), "*");
 
 		if (chooser.browseForFileToOpen()) {
 
@@ -297,9 +304,16 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 			xml->writeToFile(file, "");
 			xml = nullptr;
 			saveSettings();
-		}
+		}		
 	}
-
+	else if (button = newSetButton.get()) {
+		for (int i = 0; i < 128; i++) {
+			if (audioProcessor.samplers[i] != nullptr) {
+				delete audioProcessor.samplers[i];
+				audioProcessor.samplers[i] = nullptr;
+			}
+		}		
+	}
 	else if (button == loopButton.get())
 	{
 		if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
