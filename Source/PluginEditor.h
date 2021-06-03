@@ -13,7 +13,7 @@
 #include "UI/EnvelopePanel.h"
 #include "UI/CustomLookAndFeel.h"
 #include "UI/VUMeter.h"
-#include "UI/ExtendedFileBrowser.h"
+#include "UI/PropertyView.h"
 #include "UI/SampleEditor.h"
 //==============================================================================
 /**
@@ -22,7 +22,8 @@ class SamAudioProcessorEditor  : public juce::AudioProcessorEditor,
                                  public juce::MidiKeyboardStateListener, 
                                  public juce::Button::Listener, 
                                  public juce::Slider::Listener,
-                                 public juce::Timer
+                                 public juce::Timer,
+                                 public juce::ChangeListener 
                                  
 {
 public:
@@ -40,6 +41,7 @@ public:
 
     void buttonClicked(juce::Button* button) override;    
     void timerCallback() override;
+    void changeListenerCallback(ChangeBroadcaster* source) override;
     void sliderValueChanged(juce::Slider* slider) override;
     void saveSettings();
     void loadSettings();
@@ -62,7 +64,8 @@ public:
     std::unique_ptr <juce::Label> amtLabel = nullptr;
     std::unique_ptr <juce::Label> driveLabel = nullptr;
     std::unique_ptr <VUMeter> vuMeter = nullptr;
-    std::unique_ptr <ExtendedFileBrowser> browser = nullptr;
+    std::unique_ptr <PropertyView> propertyViewLeft = nullptr;
+    std::unique_ptr <PropertyView> propertyViewRight = nullptr;
     std::unique_ptr <SampleEditor> sampleEditor = nullptr;
     std::unique_ptr <juce::Slider> pitchSlider = nullptr;
 private:

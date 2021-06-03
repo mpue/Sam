@@ -157,6 +157,7 @@ void Sampler::loadSample(File file) {
 	// setPitch(reader->sampleRate / sampleRate);
 	sampleRate = reader->sampleRate;
 	reader = nullptr;
+	
 }
 
 void Sampler::loadSample(InputStream* input) {

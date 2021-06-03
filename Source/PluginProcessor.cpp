@@ -30,9 +30,12 @@ SamAudioProcessor::~SamAudioProcessor()
 	for (int i = 0; i < 128; i++) {
 		delete samplers[i];
 	}
-	filterEnvelope = nullptr;
+	delete filterEnvelope;
 	defaultSampler = nullptr;
+	lpfLeftStage1 = nullptr;
+	lpfRightStage1 = nullptr;
 	delete tempBuffer;
+	fmtMgr = nullptr;
 }
 
 //==============================================================================

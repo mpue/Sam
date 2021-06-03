@@ -63,7 +63,7 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
     virtual void changeListenerCallback (juce::ChangeBroadcaster* source) override;
-    juce::File* getSelectedFile();
+    juce::File getSelectedFile();
     void saveState();
     void loadState();
     
@@ -89,7 +89,7 @@ private:
     FileBrowserModel* model = nullptr;
     const juce::File& initialDir;
     const juce::WildcardFileFilter* filter;
-    juce::File* selectedFile = nullptr;
+    juce::File selectedFile;
     juce::TableListBox* table = nullptr;
     juce::Viewport* view = nullptr;
     Sampler* sampler;

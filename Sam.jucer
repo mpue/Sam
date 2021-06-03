@@ -42,6 +42,9 @@
               file="Source/UI/GraphicalEnvelope.cpp"/>
         <FILE id="FFg233" name="GraphicalEnvelope.h" compile="0" resource="0"
               file="Source/UI/GraphicalEnvelope.h"/>
+        <FILE id="aVnxQ8" name="PropertyView.cpp" compile="1" resource="0"
+              file="Source/UI/PropertyView.cpp"/>
+        <FILE id="UaqZBS" name="PropertyView.h" compile="0" resource="0" file="Source/UI/PropertyView.h"/>
         <FILE id="j2mqDB" name="SampleEditor.cpp" compile="1" resource="0"
               file="Source/UI/SampleEditor.cpp"/>
         <FILE id="u7XaLU" name="SampleEditor.h" compile="0" resource="0" file="Source/UI/SampleEditor.h"/>

@@ -49,6 +49,7 @@ void SampleEditor::paint(juce::Graphics& g)
 		//		g.fillRect(0.0f, 0.0f, (sampleStartPosX - offset ) * zoom , (float)getHeight());
 				//g.fillRect((sampleEndPosX - offset) * zoom , 0.0f, (float)getWidth(), (float)getHeight());
 		g.setColour(juce::Colours::white);
+		g.drawText(sampler->getSampleLocation(), 10,10, getWidth(), 50, juce::Justification::left);
 		g.drawLine(samplePosIndicator, 3);
 		g.setColour(juce::Colours::green);
 		g.drawLine(startPosIndicator, 3);
@@ -57,6 +58,7 @@ void SampleEditor::paint(juce::Graphics& g)
 		g.drawArrow(endPosIndicatorArrow, 3, 16, 16);
 		g.drawLine(endPosIndicator, 3);
 	}
+
 	else {
 		g.drawText("No sample assigned.", getWidth() / 2 - g.getCurrentFont().getStringWidth("No sample assigned.") / 2, getHeight() / 2, 150, 50, juce::Justification::centred);
 	}

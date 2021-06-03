@@ -28,12 +28,12 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 
 	ampEnvelope = std::make_unique<EnvelopePanel>();
 	ampEnvelope->setSize(500, 195);
-	ampEnvelope->setTopLeftPosition(32, 540);
+	ampEnvelope->setTopLeftPosition(32, 720);
 	addAndMakeVisible(ampEnvelope.get());
 
 	filterEnvelope = std::make_unique<EnvelopePanel>();
 	filterEnvelope->setSize(500, 195);
-	filterEnvelope->setTopLeftPosition(722, 540);
+	filterEnvelope->setTopLeftPosition(722, 720);
 	addAndMakeVisible(filterEnvelope.get());
 
 	loadButton = std::make_unique<juce::TextButton>("Load");
@@ -53,7 +53,7 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 
 	newSetButton = std::make_unique<juce::TextButton>("New set");
 	newSetButton->setSize(100, 20);
-	newSetButton->setTopLeftPosition(376, 5);
+	newSetButton->setTopLeftPosition(366, 5);
 	addAndMakeVisible(newSetButton.get());
 
 	loopButton = std::make_unique<juce::ToggleButton>("Loop");
@@ -109,13 +109,29 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 
 	vuMeter = std::make_unique<VUMeter>();
 	vuMeter->setSize(128, 128);
-	vuMeter->setTopLeftPosition(567, 657);
+	vuMeter->setTopLeftPosition(567, 665);
 	addAndMakeVisible(vuMeter.get());
 
 	sampleEditor = std::make_unique<SampleEditor>(audioProcessor.fmtMgr.get());
 	sampleEditor->setTopLeftPosition(34, 34);
 	sampleEditor->setSize(1190, 254);
 	addAndMakeVisible(sampleEditor.get());
+
+	propertyViewLeft = std::make_unique<PropertyView>(nullptr);
+	propertyViewLeft->setTopLeftPosition(34, 330);
+	propertyViewLeft->setSize(506, 200);
+	addAndMakeVisible(propertyViewLeft.get());
+
+	propertyViewLeft->browser->addChangeListener(this);
+
+	propertyViewRight = std::make_unique<PropertyView>(nullptr);
+	propertyViewRight->setTopLeftPosition(723,330);
+	propertyViewRight->setSize(506, 200);
+	addAndMakeVisible(propertyViewRight.get());
+
+	propertyViewRight->browser->addChangeListener(this);
+
+
 	/*
 	driveSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::RotaryVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox);
 	driveSlider->setSize(64, 64);
@@ -148,8 +164,8 @@ SamAudioProcessorEditor::~SamAudioProcessorEditor()
 	loadSetButton = nullptr;
 	saveSetButton = nullptr;
 	newSetButton = nullptr;
-	loopButton = nullptr;
 	noteLabel = nullptr;
+	loopButton = nullptr;
 	cutoffSlider = nullptr;
 	resoSlider = nullptr;
 	amtSlider = nullptr;
@@ -158,6 +174,9 @@ SamAudioProcessorEditor::~SamAudioProcessorEditor()
 	resoLabel = nullptr;
 	amtLabel = nullptr;
 	driveLabel = nullptr;
+	vuMeter = nullptr;
+	propertyViewLeft = nullptr;
+	propertyViewRight = nullptr;
 	sampleEditor = nullptr;
 	pitchSlider = nullptr;
 }
@@ -190,11 +209,11 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 		sampleEditor->startTimerHz(50);
 	}
 	audioProcessor.currentSampleIndex = midiNoteNumber;
-	if (audioProcessor.samplers[midiNoteNumber] != nullptr) {
-		std::function<void(void)> changeLambda =
-			[=]() {
-			juce::MessageManager::Lock lock;
-			lock.enter();
+	std::function<void(void)> changeLambda =
+		[=]() {
+		juce::MessageManager::Lock lock;
+		lock.enter();
+		if (audioProcessor.samplers[midiNoteNumber] != nullptr) {
 
 			noteLabel->setText("current : " + juce::String(midiNoteNumber), juce::NotificationType::dontSendNotification);
 			// audioProcessor.samplers[midiNoteNumber]->play();
@@ -210,16 +229,17 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 			float r = audioProcessor.samplers[midiNoteNumber]->envelope->getParameters().release;
 			pitchSlider->setValue(audioProcessor.samplers[midiNoteNumber]->getPitchAsFloat());
 			ampEnvelope->setADSR(a, d, s, r);
-			sampleEditor->repaint();
 			repaint();
+			sampleEditor->repaint();
 			ampEnvelope->repaint();
-			lock.exit();
-		};
-		juce::MessageManager::callAsync(changeLambda);
-	}
-	else {
-		sampleEditor->setSampler(nullptr);
-	}
+		}
+		else {
+			sampleEditor->setSampler(nullptr);
+			sampleEditor->repaint();
+		}
+		lock.exit();
+	};
+	juce::MessageManager::callAsync(changeLambda);
 
 }
 
@@ -304,7 +324,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 			xml->writeToFile(file, "");
 			xml = nullptr;
 			saveSettings();
-		}		
+		}
 	}
 	else if (button = newSetButton.get()) {
 		for (int i = 0; i < 128; i++) {
@@ -312,7 +332,9 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 				delete audioProcessor.samplers[i];
 				audioProcessor.samplers[i] = nullptr;
 			}
-		}		
+		}
+		sampleEditor->setSampler(nullptr);
+		sampleEditor->repaint();
 	}
 	else if (button == loopButton.get())
 	{
@@ -331,6 +353,25 @@ void SamAudioProcessorEditor::timerCallback()
 	vuMeter->magnitude = audioProcessor.magnitude;
 	repaint();
 
+}
+
+void SamAudioProcessorEditor::changeListenerCallback(ChangeBroadcaster* source)
+{
+	ExtendedFileBrowser* efb = dynamic_cast<ExtendedFileBrowser*>(source);
+	Sampler* s = new Sampler(audioProcessor.sampleRate, audioProcessor.bufferSize);
+	s->loadSample(efb->getSelectedFile());
+	s->setLoop(true);
+	s->play();
+
+	if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
+		audioProcessor.samplers[audioProcessor.currentSampleIndex] = nullptr;
+	}
+	audioProcessor.samplers[audioProcessor.currentSampleIndex] = s;
+	if (s->hasSample()) {
+		sampleEditor->setSampler(s);
+	}
+
+	sampleEditor->repaint();
 }
 
 void SamAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
@@ -376,11 +417,11 @@ void SamAudioProcessorEditor::saveSettings()
 
 	ValueTree* v = new ValueTree("Settings");
 
-	v->setProperty("currentFile", currentFile,nullptr);
-	
+	v->setProperty("currentFile", currentFile, nullptr);
+
 	std::unique_ptr<XmlElement> xml = v->createXml();
-	xml->writeToFile(configFile,"");
-	
+	xml->writeToFile(configFile, "");
+
 	xml = nullptr;
 	delete v;
 }
@@ -411,7 +452,7 @@ void SamAudioProcessorEditor::loadSettings()
 }
 
 void SamAudioProcessorEditor::loadFile(juce::File file)
-{	
+{
 	std::unique_ptr<juce::XmlElement> xml = juce::XmlDocument(file).getDocumentElement();
 	juce::ValueTree v = juce::ValueTree::fromXml(*xml.get());
 	xml = nullptr;
@@ -453,7 +494,7 @@ void SamAudioProcessorEditor::loadFile(juce::File file)
 
 	}
 
-	currentFile = file.getFullPathName(); 
+	currentFile = file.getFullPathName();
 	saveSettings();
 }
 
