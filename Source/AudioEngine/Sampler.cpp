@@ -52,6 +52,8 @@ Sampler::~Sampler() {
 }
 
 float Sampler::process() {
+
+	
 	nextSample();
 	return getCurrentSample(0) + getCurrentSample(1);
 }
@@ -81,6 +83,11 @@ void Sampler::nextSample() {
 
 }
 
+void Sampler::nextBlock()
+{
+
+}
+
 void Sampler::play() {
 
 	playing = true;
@@ -93,7 +100,7 @@ void Sampler::stop() {
 
 float Sampler::getCurrentSample(int channel) {
 
-	if (sampleBuffer != nullptr && sampleLength > 0 && !isDone()) {
+	if (sampleBuffer != nullptr && sampleLength > 0 && !isDone() && sampleBuffer->getNumSamples() > 0) {
 
 		if (pitch != 1) {
 			if (channel == 0) {
@@ -218,7 +225,7 @@ void Sampler::setLoop(bool loop) {
 }
 
 void Sampler::setPitch(float pitch) {
-
+	
 	this->pitch = pitch;
 
 	if (pitch < 0.25) {
@@ -229,12 +236,16 @@ void Sampler::setPitch(float pitch) {
 	}
 
 	if (getSampleLength() > 0) {
-		if (this->tempBufferLeft == nullptr)
-			this->tempBufferLeft = new float[getSampleBuffer()->getNumSamples() * 2];
-		if (this->tempBufferRight == nullptr)
-			this->tempBufferRight = new float[getSampleBuffer()->getNumSamples() * 2];
-		interpolatorLeft->process(pitch, getSampleBuffer()->getReadPointer(0), tempBufferLeft, getSampleBuffer()->getNumSamples());
-		interpolatorLeft->process(pitch, getSampleBuffer()->getReadPointer(1), tempBufferRight, getSampleBuffer()->getNumSamples());
+
+		const float* leftIn = sampleBuffer->getReadPointer(0);
+		const float* righIn = sampleBuffer->getReadPointer(1);
+
+		interpolatorLeft->process(pitch, leftIn, tempBufferLeft, getSampleLength());
+		interpolatorRight->process(pitch, righIn, tempBufferRight, getSampleLength());
+
+		interpolatorLeft->reset();
+		interpolatorRight->reset();
+
 	}
 
 }

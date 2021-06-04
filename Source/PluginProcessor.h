@@ -12,6 +12,7 @@
 #include "AudioEngine/Sampler.h"
 #include "AudioEngine/ADSR.h"
 #include "AudioEngine/MultimodeFilter.h"
+#include "ControllerMappings.h"
 
 class SamAudioProcessorEditor;
 //==============================================================================
@@ -68,14 +69,21 @@ public:
     std::unique_ptr<MultimodeFilter> lpfLeftStage1 = nullptr;
     std::unique_ptr<MultimodeFilter> lpfRightStage1 = nullptr;
 
+    std::unique_ptr <juce::CatmullRomInterpolator> interpolatorLeft = nullptr;
+    std::unique_ptr <juce::CatmullRomInterpolator> interpolatorRight = nullptr;
+
     float cutoff = 22000.0f;
     float resonance = 0.1f;
     float amount = 1.0f;
     float magnitude = 0;
     long currentSample = 0;
 
+    bool learn = false;
+    juce::Component* learningControl = nullptr;
+
     std::unique_ptr<Sampler> defaultSampler = nullptr;
     juce::MidiKeyboardState state;
+    ControllerMappings mappings;
 
 private:
     float envValue = 0;

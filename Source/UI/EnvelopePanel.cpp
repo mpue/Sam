@@ -49,7 +49,7 @@ EnvelopePanel::EnvelopePanel ()
     amp_decay->setTextBoxStyle(Slider::NoTextBox, false, 80, 20);
     amp_decay->addListener(this);
 
-    amp_decay->setBounds(64, 8, 64, 64);
+    amp_decay->setBounds(100, 8, 64, 64);
 
     amp_sustain.reset(new Slider("amp_sustain"));
     addAndMakeVisible(amp_sustain.get());
@@ -58,7 +58,7 @@ EnvelopePanel::EnvelopePanel ()
     amp_sustain->setTextBoxStyle(Slider::NoTextBox, false, 80, 20);
     amp_sustain->addListener(this);
 
-    amp_sustain->setBounds(128, 8, 64, 64);
+    amp_sustain->setBounds(200, 8, 64, 64);
 
     amp_release.reset(new Slider("amp_release"));
     addAndMakeVisible(amp_release.get());
@@ -67,12 +67,12 @@ EnvelopePanel::EnvelopePanel ()
     amp_release->setTextBoxStyle(Slider::NoTextBox, false, 80, 20);
     amp_release->addListener(this);
 
-    amp_release->setBounds(192, 8, 64, 64);
+    amp_release->setBounds(300, 8, 64, 64);
 
     attack.reset(new Label("attack",
         TRANS("Attack")));
     addAndMakeVisible(attack.get());
-    attack->setFont(Font(12.00f, Font::plain).withTypefaceStyle("Regular"));
+    // attack->setFont(Font(12.00f, Font::plain).withTypefaceStyle("Regular"));
     attack->setJustificationType(Justification::centredLeft);
     attack->setEditable(false, false, false);
     attack->setColour(TextEditor::textColourId, Colours::black);
@@ -83,35 +83,35 @@ EnvelopePanel::EnvelopePanel ()
     decay.reset(new Label("decay",
         TRANS("Decay\n")));
     addAndMakeVisible(decay.get());
-    decay->setFont(Font(12.00f, Font::plain).withTypefaceStyle("Regular"));
+    //decay->setFont(Font(12.00f, Font::plain).withTypefaceStyle("Regular"));
     decay->setJustificationType(Justification::centredLeft);
     decay->setEditable(false, false, false);
     decay->setColour(TextEditor::textColourId, Colours::black);
     decay->setColour(TextEditor::backgroundColourId, Colour(0x00000000));
 
-    decay->setBounds(72, 64, 56, 24);
+    decay->setBounds(108, 64, 56, 24);
 
     sustain.reset(new Label("sustain",
         TRANS("Sustain")));
     addAndMakeVisible(sustain.get());
-    sustain->setFont(Font(12.00f, Font::plain).withTypefaceStyle("Regular"));
+    //sustain->setFont(Font(12.00f, Font::plain).withTypefaceStyle("Regular"));
     sustain->setJustificationType(Justification::centredLeft);
     sustain->setEditable(false, false, false);
     sustain->setColour(TextEditor::textColourId, Colours::black);
     sustain->setColour(TextEditor::backgroundColourId, Colour(0x00000000));
 
-    sustain->setBounds(136, 64, 56, 24);
+    sustain->setBounds(208, 64, 56, 24);
 
     Release.reset(new Label("Release",
         TRANS("Release")));
     addAndMakeVisible(Release.get());
-    Release->setFont(Font(12.00f, Font::plain).withTypefaceStyle("Regular"));
+    //Release->setFont(Font(12.00f, Font::plain).withTypefaceStyle("Regular"));
     Release->setJustificationType(Justification::centredLeft);
     Release->setEditable(false, false, false);
     Release->setColour(TextEditor::textColourId, Colours::black);
     Release->setColour(TextEditor::backgroundColourId, Colour(0x00000000));
 
-    Release->setBounds(200, 64, 56, 24);
+    Release->setBounds(308, 64, 56, 24);
 
 
     //[UserPreSize]

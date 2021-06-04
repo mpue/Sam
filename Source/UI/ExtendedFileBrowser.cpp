@@ -36,7 +36,7 @@ ExtendedFileBrowser::ExtendedFileBrowser(const File& initialFileOrDirectory, con
 	table->getHeader().setStretchToFitActive(true);
 	table->setModel(model);
 	this->model = model;
-	view = new Viewport();
+	view = new Viewport();	
 	view->setViewedComponent(table);
 	addAndMakeVisible(view);
 
@@ -90,7 +90,7 @@ void ExtendedFileBrowser::resized() {
 	if (getParentComponent() != nullptr) {
 		setSize(getParentWidth(), getParentHeight());
 		view->setSize(getWidth(), getHeight());
-		table->setSize(getWidth(), getHeight() - 30);
+		table->setSize(getWidth(), getHeight());
 	}
 }
 
@@ -159,6 +159,7 @@ void ExtendedFileBrowser::playFile(int row) {
 				f.getFileExtension().toLowerCase().contains("aif") ||
 				f.getFileExtension().toLowerCase().contains("aiff") ||
 				f.getFileExtension().toLowerCase().contains("mp3") ||
+				f.getFileExtension().toLowerCase().contains("sam") ||
 				f.getFileExtension().toLowerCase().contains("ogg")) {
 				if (sampler != nullptr) {
 					sampler->stop();
@@ -255,61 +256,12 @@ DirectoryContentsList* FileBrowserModel::getDirectoryList() {
 }
 
 void ExtendedFileBrowser::saveState() {
-	String userHome = File::getSpecialLocation(File::userHomeDirectory).getFullPathName();
-	File appDir = File(userHome + "/.Sam");
-
-	if (!appDir.exists()) {
-		appDir.createDirectory();
-	}
-
-	File configFile = File(userHome + "/.Sam/state.xml");
-
-	if (!configFile.exists()) {
-		configFile.create();
-	}
-	else {
-		configFile.deleteFile();
-		configFile = File(userHome + "/.Sam/state.xml");
-	}
-
-	ValueTree* v = new ValueTree("SavedState");
-
-	ValueTree child = ValueTree("File");
-	child.setProperty("lastDirectory", model->getCurrentDir(), nullptr);
-	v->addChild(child, -1, nullptr);	
-	std::unique_ptr<XmlElement> xml = v->createXml();
-	xml->writeToFile(configFile, "");
-
-	xml = nullptr;
-
-	delete v;
+	
 }
 
 void ExtendedFileBrowser::loadState() {
-	/*
-	String userHome = File::getSpecialLocation(File::userHomeDirectory).getFullPathName();
-
-	File appDir = File(userHome + "/.Sam");
-
-	if (!appDir.exists()) {
-		appDir.createDirectory();
-	}
-
-	File configFile = File(userHome + "/.Sam/state.xml");
-
-	if (configFile.exists()) {
-		ScopedPointer<XmlElement> xml = XmlDocument(configFile).getDocumentElement().get();
-		ValueTree v = ValueTree::fromXml(*xml.get());
-
-		if (v.getNumChildren() > 0) {
-			String path = v.getChild(0).getProperty("lastDirectory");
-			File* file = new File(path);
-			model->setCurrentDir(file);
-			delete file;
-		}
-		xml = nullptr;
-	}
-	*/
+	
+	
 }
 
 

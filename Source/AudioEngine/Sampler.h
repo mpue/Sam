@@ -43,6 +43,7 @@ public:
     juce::AudioSampleBuffer* getSampleBuffer();
     bool hasSample();
     void nextSample();
+    void nextBlock();
 	virtual float process() override;
     float getCurrentSample(int channel);
     long getCurrentPosition() {

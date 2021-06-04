@@ -25,15 +25,19 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	keyboard->setTopLeftPosition(30, 810);
 	audioProcessor.state.addListener(this);
 	addAndMakeVisible(keyboard.get());
+	loopButton = std::make_unique<juce::ToggleButton>("Loop");
+	loopButton->setSize(100, 20);
+	loopButton->setTopLeftPosition(42, 300);
+	addAndMakeVisible(loopButton.get());
 
 	ampEnvelope = std::make_unique<EnvelopePanel>();
 	ampEnvelope->setSize(500, 195);
-	ampEnvelope->setTopLeftPosition(32, 720);
+	ampEnvelope->setTopLeftPosition(82, 720);
 	addAndMakeVisible(ampEnvelope.get());
 
 	filterEnvelope = std::make_unique<EnvelopePanel>();
 	filterEnvelope->setSize(500, 195);
-	filterEnvelope->setTopLeftPosition(722, 720);
+	filterEnvelope->setTopLeftPosition(772, 720);
 	addAndMakeVisible(filterEnvelope.get());
 
 	loadButton = std::make_unique<juce::TextButton>("Load");
@@ -56,15 +60,11 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	newSetButton->setTopLeftPosition(366, 5);
 	addAndMakeVisible(newSetButton.get());
 
-	loopButton = std::make_unique<juce::ToggleButton>("Loop");
-	loopButton->setSize(100, 20);
-	loopButton->setTopLeftPosition(42, 300);
-	addAndMakeVisible(loopButton.get());
 
 	pitchSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::LinearHorizontal, juce::Slider::TextEntryBoxPosition::TextBoxRight);
 	pitchSlider->setSize(400, 24);
 	pitchSlider->setTopLeftPosition(100, 300);
-	pitchSlider->setRange(0.25, 2);
+	pitchSlider->setRange(0.25, 1.99);
 	pitchSlider->setOpaque(false);
 	pitchSlider->setValue(1);
 	addAndMakeVisible(pitchSlider.get());
@@ -78,6 +78,7 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	cutoffSlider->setSize(64, 64);
 	cutoffSlider->setTopLeftPosition(725, 650);
 	cutoffSlider->setRange(0, 22000);
+	cutoffSlider->setName("Cutoff");
 	addAndMakeVisible(cutoffSlider.get());
 
 	cutoffLabel = std::make_unique<juce::Label>("Cutoff", "Cutoff");
@@ -89,6 +90,7 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	resoSlider->setSize(64, 64);
 	resoSlider->setTopLeftPosition(825, 650);
 	resoSlider->setRange(0, 5);
+	resoSlider->setName("Resonance");
 	addAndMakeVisible(resoSlider.get());
 
 	resoLabel = std::make_unique<juce::Label>("Resonance", "Resonance");
@@ -100,6 +102,7 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	amtSlider->setSize(64, 64);
 	amtSlider->setTopLeftPosition(925, 650);
 	amtSlider->setRange(0, 1);
+	amtSlider->setName("Amount");
 	addAndMakeVisible(amtSlider.get());
 
 	amtLabel = std::make_unique<juce::Label>("Amount", "Amount");
@@ -149,12 +152,15 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	amtSlider->addListener(this);
 	pitchSlider->addListener(this);
 	// driveSlider->addListener(this);
+	addMouseListener(this,true);
+
 	loadSettings();
 
 }
 
 SamAudioProcessorEditor::~SamAudioProcessorEditor()
 {
+	saveSettings();
 	audioProcessor.state.removeListener(this);
 	setLookAndFeel(nullptr);
 	keyboard = nullptr;
@@ -250,7 +256,7 @@ void SamAudioProcessorEditor::handleNoteOff(juce::MidiKeyboardState* source, int
 		audioProcessor.samplers[midiNoteNumber]->stop();
 	}
 	if (audioProcessor.numVoices == 0) {
-		stopTimer();
+		// stopTimer();
 
 		// audioProcessor.samplers[midiNoteNumber]->stop();
 
@@ -260,9 +266,11 @@ void SamAudioProcessorEditor::handleNoteOff(juce::MidiKeyboardState* source, int
 void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 {
 
+	String userHome = File::getSpecialLocation(File::userHomeDirectory).getFullPathName();
+
 	if (button == loadButton.get()) {
 
-		juce::FileChooser chooser("Select sample to add", juce::File("d:\\samples\\drums"), "*");
+		juce::FileChooser chooser("Select sample to add", juce::File(userHome), "*");
 
 		if (chooser.browseForFileToOpen()) {
 
@@ -281,7 +289,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 	}
 	else if (button == loadSetButton.get()) {
 
-		juce::FileChooser chooser("Select set to open", juce::File("d:\\samples\\drums"), "*");
+		juce::FileChooser chooser("Select set to open", juce::File(userHome), "*");
 
 		if (chooser.browseForFileToOpen()) {
 
@@ -293,7 +301,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 	else if (button == saveSetButton.get()) {
 
 
-		juce::FileChooser chooser("Select target file", juce::File("d:\\samples\\drums"), "*");
+		juce::FileChooser chooser("Select target file", juce::File(userHome), "*");
 
 		if (chooser.browseForFileToSave(true)) {
 
@@ -326,7 +334,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 			saveSettings();
 		}
 	}
-	else if (button = newSetButton.get()) {
+	else if (button == newSetButton.get()) {
 		for (int i = 0; i < 128; i++) {
 			if (audioProcessor.samplers[i] != nullptr) {
 				delete audioProcessor.samplers[i];
@@ -350,6 +358,8 @@ void SamAudioProcessorEditor::timerCallback()
 		return;
 	}
 	cutoffSlider->setValue(audioProcessor.cutoff);
+	resoSlider->setValue(audioProcessor.resonance);
+	amtSlider->setValue(audioProcessor.amount);
 	vuMeter->magnitude = audioProcessor.magnitude;
 	repaint();
 
@@ -358,19 +368,26 @@ void SamAudioProcessorEditor::timerCallback()
 void SamAudioProcessorEditor::changeListenerCallback(ChangeBroadcaster* source)
 {
 	ExtendedFileBrowser* efb = dynamic_cast<ExtendedFileBrowser*>(source);
-	Sampler* s = new Sampler(audioProcessor.sampleRate, audioProcessor.bufferSize);
-	s->loadSample(efb->getSelectedFile());
-	s->setLoop(true);
-	s->play();
-
-	if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
-		audioProcessor.samplers[audioProcessor.currentSampleIndex] = nullptr;
+	
+	if (efb->getSelectedFile().getFileExtension() == ".sam") {
+		loadFile(efb->getSelectedFile());
 	}
-	audioProcessor.samplers[audioProcessor.currentSampleIndex] = s;
-	if (s->hasSample()) {
-		sampleEditor->setSampler(s);
-	}
+	else {
+		Sampler* s = new Sampler(audioProcessor.sampleRate, audioProcessor.bufferSize);
+		s->loadSample(efb->getSelectedFile());
+		s->setLoop(true);
+		s->play();
 
+		if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
+			audioProcessor.samplers[audioProcessor.currentSampleIndex] = nullptr;
+		}
+		audioProcessor.samplers[audioProcessor.currentSampleIndex] = s;
+		if (s->hasSample()) {
+			sampleEditor->setSampler(s);
+		}
+
+	}
+	
 	sampleEditor->repaint();
 }
 
@@ -418,6 +435,8 @@ void SamAudioProcessorEditor::saveSettings()
 	ValueTree* v = new ValueTree("Settings");
 
 	v->setProperty("currentFile", currentFile, nullptr);
+	v->setProperty("leftCurrentDir", propertyViewLeft->browser->model->getCurrentDir(), nullptr);
+	v->setProperty("rightCurrentDir", propertyViewRight->browser->model->getCurrentDir(), nullptr);
 
 	std::unique_ptr<XmlElement> xml = v->createXml();
 	xml->writeToFile(configFile, "");
@@ -442,6 +461,14 @@ void SamAudioProcessorEditor::loadSettings()
 		std::unique_ptr<XmlElement> xml = XmlDocument(configFile).getDocumentElement();
 		ValueTree v = ValueTree::fromXml(*xml.get());
 		String path = v.getProperty("currentFile");
+		String sLeftDir = v.getProperty("leftCurrentDir");
+		String sRightDir = v.getProperty("rightCurrentDir");
+
+		juce::File* leftDir = new juce::File(sLeftDir);
+		juce::File* rightDir = new juce::File(sRightDir);
+
+		propertyViewLeft->browser->model->setCurrentDir(leftDir);
+		propertyViewRight->browser->model->setCurrentDir(rightDir);
 
 		if (path.length() > 0) {
 			loadFile(juce::File(path));
@@ -453,6 +480,10 @@ void SamAudioProcessorEditor::loadSettings()
 
 void SamAudioProcessorEditor::loadFile(juce::File file)
 {
+	if (!file.exists()) {
+		return;
+	}
+
 	std::unique_ptr<juce::XmlElement> xml = juce::XmlDocument(file).getDocumentElement();
 	juce::ValueTree v = juce::ValueTree::fromXml(*xml.get());
 	xml = nullptr;
@@ -496,6 +527,32 @@ void SamAudioProcessorEditor::loadFile(juce::File file)
 
 	currentFile = file.getFullPathName();
 	saveSettings();
+}
+
+void SamAudioProcessorEditor::mouseDown(const MouseEvent& event)
+{
+	if (event.mods.isRightButtonDown()) {
+		PopupMenu m = PopupMenu();
+
+		Component* c = event.source.getComponentUnderMouse();
+		m.addItem(1, "MIDI Learn");
+		m.addItem(2, "MIDI forget");
+
+		const int result = m.show();
+
+		if (result == 0)
+		{
+			// user dismissed the menu without picking anything
+		}
+		else if (result == 1 &&  c != nullptr) {
+			audioProcessor.learn = true;
+			audioProcessor.learningControl = c;
+		}
+		else if (result == 2) {
+			audioProcessor.mappings.removeMapping(c->getName());
+		}
+		
+	}
 }
 
 

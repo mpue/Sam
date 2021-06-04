@@ -23,6 +23,7 @@ SamAudioProcessor::SamAudioProcessor()
 {
 	fmtMgr = std::make_unique<juce::AudioFormatManager>();
 	fmtMgr->registerBasicFormats();
+	mappings = ControllerMappings();
 }
 
 SamAudioProcessor::~SamAudioProcessor()
@@ -36,6 +37,8 @@ SamAudioProcessor::~SamAudioProcessor()
 	lpfRightStage1 = nullptr;
 	delete tempBuffer;
 	fmtMgr = nullptr;
+	interpolatorLeft = nullptr;
+	interpolatorRight = nullptr;
 }
 
 //==============================================================================
@@ -114,8 +117,12 @@ void SamAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	}
 	tempBuffer = new juce::AudioSampleBuffer(2, samplesPerBlock);
 
+	interpolatorLeft = std::make_unique<CatmullRomInterpolator>();
+	interpolatorRight = std::make_unique<CatmullRomInterpolator>();
+
 	lpfLeftStage1 = std::make_unique<MultimodeFilter>();
 	lpfRightStage1 = std::make_unique<MultimodeFilter>();
+
 
 	lpfLeftStage1->coefficients(sampleRate, cutoff, resonance);
 	lpfRightStage1->coefficients(sampleRate, cutoff, resonance);
@@ -171,19 +178,10 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 	for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
 		buffer.clear(i, 0, buffer.getNumSamples());
 
-	// This is the place where you'd normally do the guts of your plugin's
-	// audio processing...
-	// Make sure to reset the state if your inner loop is processing
-	// the samples and the outer loop is handling the channels.
-	// Alternatively, you can process the samples with the channels
-	// interleaved by keeping the same state.
-	for (int channel = 0; channel < totalNumInputChannels; ++channel)
-	{
-		auto* channelData = buffer.getWritePointer(channel);
-
-		// ..do something to the data...
-	}
-
+	float* leftOut = buffer.getWritePointer(0);
+	float* rightOut = buffer.getWritePointer(1);
+	const float* leftIn = buffer.getReadPointer(0);
+	const float* righIn = buffer.getReadPointer(1);
 
 	for (int j = 0; j < 128; j++) {
 		if (samplers[j] != nullptr) {
@@ -196,32 +194,14 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 				float left = samplers[j]->getCurrentSample(0) * envValue;
 				float right = samplers[j]->getCurrentSample(1) * envValue;
 
-				float defaultLeft = defaultSampler->getCurrentSample(0) * envValue;
-				float defaultRight = defaultSampler->getCurrentSample(1) * envValue;
-
 				buffer.addSample(0, i, left);
 				buffer.addSample(1, i, right);
 
-				buffer.addSample(0, i, defaultLeft);
-				buffer.addSample(1, i, defaultRight);
-
 			}
+
 		}
 
 	}
-
-	for (int i = 0; i < bufferSize; i++) {
-
-		defaultSampler->nextSample();
-
-		float defaultLeft = defaultSampler->getCurrentSample(0) * envValue;
-		float defaultRight = defaultSampler->getCurrentSample(1) * envValue;
-
-		buffer.addSample(0, i, defaultLeft);
-		buffer.addSample(1, i, defaultRight);
-
-	}
-
 
 	if (filterEnvelope != nullptr) {
 		float f = cutoff + (filterEnvelope->getNextSample() * amount * (22000 - cutoff));
@@ -235,8 +215,6 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 
 	magnitude = buffer.getMagnitude(currentSample, bufferSize);
 
-	float* leftOut = buffer.getWritePointer(0);
-	float* rightOut = buffer.getWritePointer(1);
 
 	lpfLeftStage1->processStereo(leftOut, rightOut, buffer.getNumSamples());
 
@@ -299,16 +277,38 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 		}
 		if (m.isController()) {
 
-			juce::Logger::getCurrentLogger()->writeToLog("controller " + juce::String(m.getControllerNumber()) + " value " + juce::String(m.getControllerValue()));
-			if (m.getControllerNumber() == 40) {
-				cutoff = (20000.0f / 127.0f) * m.getControllerValue();
-				lpfLeftStage1->coefficients(sampleRate, cutoff, resonance);
+			if (learn) {
+				mappings.addMapping(m.getControllerNumber(), learningControl);
+				learn = false;
 			}
-			
-			// Modulation wheel
-			if (m.getControllerNumber() == 1) {
+			else {
 
+				juce::Logger::getCurrentLogger()->writeToLog("controller " + juce::String(m.getControllerNumber()) + " value " + juce::String(m.getControllerValue()));
+
+				juce:Component* c = mappings.getMapping(m.getControllerNumber());
+				
+				if (c != nullptr) {
+					if (c->getName() == "Cutoff") {						
+						cutoff = (20000.0f / 127.0f) * m.getControllerValue();
+						lpfLeftStage1->coefficients(sampleRate, cutoff, resonance);
+					}
+					else if (c->getName() == "Resonance") {
+						resonance = (5.0f / 127.0f) * m.getControllerValue();
+						lpfLeftStage1->coefficients(sampleRate, cutoff, resonance);
+					}
+					else if (c->getName() == "Amount") {
+						amount = (1.0f / 127.0f) * m.getControllerValue();
+						lpfLeftStage1->coefficients(sampleRate, cutoff, resonance);
+					}
+
+				}
+			
+				// Modulation wheel
+				if (m.getControllerNumber() == 1) {
+
+				}
 			}
+
 		}
 		else {
 			//( Logger::getCurrentLogger()->writeToLog("Other message : " + String(m.getTimeStamp()));

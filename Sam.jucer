@@ -26,6 +26,10 @@
       <FILE id="WZhQHt" name="vintage_vu.png" compile="0" resource="1" file="images/vintage_vu.png"/>
     </GROUP>
     <GROUP id="{369CBED0-7B33-D04B-305B-90049F8C1F26}" name="Source">
+      <FILE id="htmg3N" name="ControllerMappings.cpp" compile="1" resource="0"
+            file="Source/ControllerMappings.cpp"/>
+      <FILE id="wZRL4P" name="ControllerMappings.h" compile="0" resource="0"
+            file="Source/ControllerMappings.h"/>
       <GROUP id="{A898B61B-8004-376A-35C8-7E8A2DCF217A}" name="UI">
         <FILE id="Inffp3" name="CustomLookAndFeel.cpp" compile="1" resource="0"
               file="Source/UI/CustomLookAndFeel.cpp"/>

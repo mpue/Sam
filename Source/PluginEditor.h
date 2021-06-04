@@ -23,7 +23,8 @@ class SamAudioProcessorEditor  : public juce::AudioProcessorEditor,
                                  public juce::Button::Listener, 
                                  public juce::Slider::Listener,
                                  public juce::Timer,
-                                 public juce::ChangeListener 
+                                 public juce::ChangeListener,
+                                 public juce::MouseListener
                                  
 {
 public:
@@ -46,6 +47,7 @@ public:
     void saveSettings();
     void loadSettings();
     void loadFile(juce::File file);
+    void mouseDown(const MouseEvent& event) override;
     std::unique_ptr<juce::MidiKeyboardComponent> keyboard;
     std::unique_ptr<EnvelopePanel> ampEnvelope = nullptr;
     std::unique_ptr<EnvelopePanel> filterEnvelope = nullptr;

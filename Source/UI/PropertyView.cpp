@@ -53,10 +53,10 @@ PropertyView::PropertyView (Sampler* sampler) : TimeSliceThread("PropertyWatcher
     setSize(getParentWidth(), getParentHeight());
     
 
-    filter = new WildcardFileFilter("*.wav;*.aif;*.aiff;*.mp3;*.slb","*","*");
+    filter = new WildcardFileFilter("*.wav;*.aif;*.aiff;*.mp3;*.sam","*","*");
     directoryContents = new DirectoryContentsList(filter,*this);
     directoryContents->setIgnoresHiddenFiles(false);
-    File initialDir = "d:\\samples";
+    File initialDir = File::getSpecialLocation(File::userHomeDirectory);
     FileBrowserModel* model = new FileBrowserModel(directoryContents, initialDir);
     browser  = new ExtendedFileBrowser(File::getSpecialLocation(File::userHomeDirectory),filter,model, sampler);
     directoryContents->addChangeListener(browser);
@@ -98,7 +98,9 @@ void PropertyView::resized()
 {
     //[UserPreResize] Add your own custom resize code here..
     //[/UserPreResize]
-
+    if (browser != nullptr) {
+        browser->resized();
+    }
     //[UserResized] Add your own custom resize handling here..
 
     //[/UserResized]

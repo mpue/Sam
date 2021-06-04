@@ -45,7 +45,7 @@ namespace BinaryData
     const int            oscillator_square_48_pngSize = 17545;
 
     extern const char*   sam_png;
-    const int            sam_pngSize = 25743;
+    const int            sam_pngSize = 27798;
 
     extern const char*   vintage_vu_png;
     const int            vintage_vu_pngSize = 30329;

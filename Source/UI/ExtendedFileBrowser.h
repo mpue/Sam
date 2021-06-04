@@ -85,8 +85,8 @@ public:
         return sampler;
     }
     
-private:
     FileBrowserModel* model = nullptr;
+private:
     const juce::File& initialDir;
     const juce::WildcardFileFilter* filter;
     juce::File selectedFile;
