@@ -11,9 +11,12 @@
 #include <JuceHeader.h>
 #include "AudioEngine/Sampler.h"
 #include "AudioEngine/ADSR.h"
+#include "Sequencer.h"
 #include "AudioEngine/MultimodeFilter.h"
 #include "ControllerMappings.h"
-
+#include "Event.h"
+#include "AudioEngine/AudioRecorder.h"
+#include <stack>
 class SamAudioProcessorEditor;
 //==============================================================================
 /**
@@ -62,7 +65,7 @@ public:
     Sampler* samplers[128];
     int bufferSize;
     double sampleRate;
-    juce::ADSR* filterEnvelope = nullptr;
+    std::unique_ptr <juce::ADSR> filterEnvelope = nullptr;
     bool voices[128];
     int numVoices = 0;
 
@@ -84,6 +87,11 @@ public:
     std::unique_ptr<Sampler> defaultSampler = nullptr;
     juce::MidiKeyboardState state;
     ControllerMappings mappings;
+    std::stack<Event*> events;
+    Sequencer* sequencer = nullptr;
+
+    AudioRecorder recorder;
+    bool isRecording = false;
 
 private:
     float envValue = 0;

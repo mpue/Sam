@@ -10,6 +10,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "../AudioEngine/Sampler.h"
+using juce::Button;
 class Sampler;
 class FileBrowserModel : public juce::TableListBoxModel {
 public:
@@ -50,7 +51,8 @@ private:
 
 };
 
-class ExtendedFileBrowser : public juce::Component,  public juce::ChangeListener, public juce::Timer, public juce::ChangeBroadcaster {
+class ExtendedFileBrowser : public juce::Component,  public juce::ChangeListener, public juce::Timer, public juce::ChangeBroadcaster, public Button::Listener
+{
     
     
 public:
@@ -66,7 +68,7 @@ public:
     juce::File getSelectedFile();
     void saveState();
     void loadState();
-    
+    void buttonClicked(Button* button) override;
     juce::TableListBox* getTable() {
         return table;
     };
@@ -94,5 +96,7 @@ private:
     juce::Viewport* view = nullptr;
     Sampler* sampler;
     bool playing = false;
+    std::vector<Button*> driveButtons;
+
 };
 

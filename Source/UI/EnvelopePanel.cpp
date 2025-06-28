@@ -200,7 +200,9 @@ void EnvelopePanel::sliderValueChanged (Slider* sliderThatWasMoved)
     p.decay = d;
     p.sustain = s;
     p.release = r;
-    adsr->setParameters(p);
+
+    if (adsr != nullptr)
+        adsr->setParameters(p);
 
 }
 

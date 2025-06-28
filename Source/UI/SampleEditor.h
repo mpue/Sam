@@ -19,7 +19,7 @@ class SampleEditor : public juce::Component, public juce::Timer
 {
 public:
     SampleEditor(juce::AudioFormatManager* fmtMgr);
-    ~SampleEditor() override;
+    ~SampleEditor();
 
     void paint (juce::Graphics&) override;
     void resized() override;

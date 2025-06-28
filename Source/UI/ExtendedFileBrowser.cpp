@@ -24,6 +24,7 @@ using juce::OutputStream;
 using juce::XmlElement;
 using juce::XmlDocument;
 using juce::ScopedPointer;
+using juce::TextButton;
 
 ExtendedFileBrowser::ExtendedFileBrowser(const File& initialFileOrDirectory, const WildcardFileFilter* fileFilter, FileBrowserModel* model, Sampler* sampler) : initialDir(initialFileOrDirectory) {
 
@@ -48,6 +49,22 @@ ExtendedFileBrowser::ExtendedFileBrowser(const File& initialFileOrDirectory, con
 
 	model->update();
 
+
+	juce::Array<juce::File> drives;
+
+	File::findFileSystemRoots(drives);
+
+	for (int i = 0; i < drives.size(); i++) {
+		juce::File f = drives.getReference(i);
+		TextButton* button = new TextButton(f.getFileName());
+		button->setSize(30, 20);
+		button->setTopLeftPosition(i * 35, 0);
+		driveButtons.push_back(button);
+		addAndMakeVisible(button);
+		button->addListener(this);
+	}
+
+
 	repaint();
 }
 
@@ -59,6 +76,9 @@ ExtendedFileBrowser::~ExtendedFileBrowser() {
 	if (sampler != nullptr) {
 		sampler->stop();
 		delete sampler;
+	}
+	for (int i = 0; i < driveButtons.size(); i++) {
+		delete driveButtons.at(i);
 	}
 }
 
@@ -101,6 +121,12 @@ void ExtendedFileBrowser::changeListenerCallback(ChangeBroadcaster* source) {
 void ExtendedFileBrowser::mouseDown(const juce::MouseEvent& event) {
 
 
+}
+
+void ExtendedFileBrowser::buttonClicked(Button* button)
+{
+	juce::File* file = new juce::File(button->getButtonText() + "\\");
+	model->setCurrentDir(file);
 }
 
 void ExtendedFileBrowser::mouseDoubleClick(const juce::MouseEvent& event) {

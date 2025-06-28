@@ -2,7 +2,7 @@
 
 <JUCERPROJECT id="bxmuhw" name="Sam" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" companyName="Matthias Pueski"
-              pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn">
+              pluginCharacteristicsValue="pluginWantsMidiIn">
   <MAINGROUP id="gM57QM" name="Sam">
     <GROUP id="{740F0B0F-DC78-6AE2-C9E5-72C1850664ED}" name="images">
       <FILE id="uoaovQ" name="carbon.jpg" compile="0" resource="1" file="images/carbon.jpg"/>
@@ -26,11 +26,17 @@
       <FILE id="WZhQHt" name="vintage_vu.png" compile="0" resource="1" file="images/vintage_vu.png"/>
     </GROUP>
     <GROUP id="{369CBED0-7B33-D04B-305B-90049F8C1F26}" name="Source">
+      <FILE id="CjbIdF" name="Sequencer.cpp" compile="1" resource="0" file="Source/Sequencer.cpp"/>
+      <FILE id="MvLdme" name="Sequencer.h" compile="0" resource="0" file="Source/Sequencer.h"/>
+      <FILE id="FrM2LQ" name="Event.cpp" compile="1" resource="0" file="Source/Event.cpp"/>
+      <FILE id="uSPlMv" name="Event.h" compile="0" resource="0" file="Source/Event.h"/>
       <FILE id="htmg3N" name="ControllerMappings.cpp" compile="1" resource="0"
             file="Source/ControllerMappings.cpp"/>
       <FILE id="wZRL4P" name="ControllerMappings.h" compile="0" resource="0"
             file="Source/ControllerMappings.h"/>
       <GROUP id="{A898B61B-8004-376A-35C8-7E8A2DCF217A}" name="UI">
+        <FILE id="ibFBlf" name="Cell.cpp" compile="1" resource="0" file="Source/UI/Cell.cpp"/>
+        <FILE id="DbnL0m" name="Cell.h" compile="0" resource="0" file="Source/UI/Cell.h"/>
         <FILE id="Inffp3" name="CustomLookAndFeel.cpp" compile="1" resource="0"
               file="Source/UI/CustomLookAndFeel.cpp"/>
         <FILE id="NEOahB" name="CustomLookAndFeel.h" compile="0" resource="0"
@@ -52,6 +58,10 @@
         <FILE id="j2mqDB" name="SampleEditor.cpp" compile="1" resource="0"
               file="Source/UI/SampleEditor.cpp"/>
         <FILE id="u7XaLU" name="SampleEditor.h" compile="0" resource="0" file="Source/UI/SampleEditor.h"/>
+        <FILE id="grC0uN" name="SequenceEditor.cpp" compile="1" resource="0"
+              file="Source/UI/SequenceEditor.cpp"/>
+        <FILE id="Y154sj" name="SequenceEditor.h" compile="0" resource="0"
+              file="Source/UI/SequenceEditor.h"/>
         <FILE id="NMWYJj" name="TrioLookAndFeel.cpp" compile="1" resource="0"
               file="Source/UI/TrioLookAndFeel.cpp"/>
         <FILE id="psbccP" name="TrioLookAndFeel.h" compile="0" resource="0"
@@ -66,6 +76,7 @@
         <FILE id="jXlGlS" name="Arpeggiator.h" compile="0" resource="0" file="Source/AudioEngine/Arpeggiator.h"/>
         <FILE id="xJFfPF" name="AudioProcessorModule.h" compile="0" resource="0"
               file="Source/AudioEngine/AudioProcessorModule.h"/>
+        <FILE id="afWqFE" name="AudioRecorder.h" compile="0" resource="0" file="Source/AudioEngine/AudioRecorder.h"/>
         <FILE id="LsnXif" name="BasicDelayLine.cpp" compile="1" resource="0"
               file="Source/AudioEngine/BasicDelayLine.cpp"/>
         <FILE id="Bpflj5" name="BasicDelayLine.h" compile="0" resource="0"

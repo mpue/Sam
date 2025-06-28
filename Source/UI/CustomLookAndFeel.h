@@ -33,7 +33,7 @@ public:
         setColour(juce::ResizableWindow::backgroundColourId, juce::Colour (0xff222222));
         setColour(juce::AlertWindow::backgroundColourId ,juce::Colour (0xff222222));
         setColour(juce::AlertWindow::outlineColourId ,juce::Colours::grey);
-        setColour(juce::Label::textColourId, juce::Colours::orange);
+        setColour(juce::Label::textColourId, juce::Colours::white);
         setColour(juce::ComboBox::backgroundColourId, juce::Colour (0xff222222));
         setColour(juce::PopupMenu::backgroundColourId, juce::Colour (0xff2d2d2d));
         setColour(juce::PopupMenu::highlightedBackgroundColourId, juce::Colours::grey.brighter());
@@ -46,15 +46,15 @@ public:
         setColour(juce::ListBox::textColourId, juce::Colours::grey.brighter());
         setColour(juce::TextButton::buttonColourId, juce::Colours::grey.darker());
         setColour(juce::TextButton::buttonOnColourId, juce::Colours::grey.darker());
-        setColour(juce::TextButton::textColourOnId, juce::Colours::orange);
-        setColour(juce::TextButton::textColourOffId, juce::Colours::orange);
+        setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+        setColour(juce::TextButton::textColourOffId, juce::Colours::white);
         setColour(juce::TextEditor::outlineColourId, juce::Colours::grey.darker());
         setColour(juce::TextEditor::backgroundColourId, juce::Colour (0xff222222));
         setColour(juce::TextEditor::highlightColourId, juce::Colours::grey.darker());
         setColour(juce::TextEditor::highlightedTextColourId, juce::Colours::black);
         setColour(juce::TextEditor::textColourId, juce::Colours::grey.brighter());
-        setColour(juce::TextButton::textColourOffId, juce::Colours::orange);
-        setColour(juce::TextButton::textColourOnId, juce::Colours::orange);
+        setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+        setColour(juce::TextButton::textColourOnId, juce::Colours::white);
         setColour(juce::CaretComponent::caretColourId, juce::Colours::grey);
         
         setColour (juce::ScrollBar::thumbColourId,juce::Colours::grey.darker());
@@ -78,6 +78,11 @@ public:
                                                  float     rotaryStartAngle,
                                                  float     rotaryEndAngle,
                               juce::Slider &     slider ) override;
+    void drawButtonBackground(juce::Graphics& g,
+        juce::Button& button,
+        const juce::Colour& backgroundColour,
+        bool shouldDrawButtonAsHighlighted,
+        bool shouldDrawButtonAsDown) override;
 private:
     juce::ColourGradient gradientVertical;
     juce::ColourGradient gradientHorizontal;

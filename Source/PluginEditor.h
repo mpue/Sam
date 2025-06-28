@@ -9,12 +9,15 @@
 #pragma once
 
 #include <JuceHeader.h>
+
 #include "PluginProcessor.h"
+#include "UI/GraphicalEnvelope.h"
 #include "UI/EnvelopePanel.h"
 #include "UI/CustomLookAndFeel.h"
 #include "UI/VUMeter.h"
 #include "UI/PropertyView.h"
 #include "UI/SampleEditor.h"
+#include "UI/SequenceEditor.h"
 //==============================================================================
 /**
 */
@@ -25,6 +28,7 @@ class SamAudioProcessorEditor  : public juce::AudioProcessorEditor,
                                  public juce::Timer,
                                  public juce::ChangeListener,
                                  public juce::MouseListener
+                                 
                                  
 {
 public:
@@ -69,7 +73,11 @@ public:
     std::unique_ptr <PropertyView> propertyViewLeft = nullptr;
     std::unique_ptr <PropertyView> propertyViewRight = nullptr;
     std::unique_ptr <SampleEditor> sampleEditor = nullptr;
+    // std::unique_ptr <SequenceEditor> sequenceEditor = nullptr;
     std::unique_ptr <juce::Slider> pitchSlider = nullptr;
+    std::unique_ptr <juce::Button> mainViewButton = nullptr;
+    std::unique_ptr <juce::Button> sequencerViewButton = nullptr;
+    std::unique_ptr <juce::Button> recordButton = nullptr;
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.

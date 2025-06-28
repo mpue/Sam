@@ -82,7 +82,7 @@ private:
     std::unique_ptr<Label> sustain;
     std::unique_ptr<Label> Release;
 
-    juce::ADSR* adsr;
+    juce::ADSR* adsr = nullptr;
     float a, d, s, r;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EnvelopePanel)
