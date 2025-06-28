@@ -84,6 +84,7 @@ private:
     CustomLookAndFeel tlf;
     SamAudioProcessor& audioProcessor;
     juce::String currentFile;
+    juce::File currentSetFile;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamAudioProcessorEditor)
 };
