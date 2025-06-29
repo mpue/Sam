@@ -76,7 +76,7 @@ void SampleEditor::reset(double sampleRate)
 void SampleEditor::timerCallback()
 {
 	if (sampler != nullptr) {
-		samplePosX = ((float)(sampler->getCurrentPosition() / (float)sampler->getSampleLength()) * getWidth());
+		samplePosX = ((float)(sampler->getPlaybackPosition() / (float)sampler->getSampleLength()) * getWidth());
 
 		sampleStartPosX = (float)(sampler->getStartPosition() / (float)sampler->getSampleLength()) * getWidth();
 		sampleEndPosX = (float)(sampler->getEndPosition() / (float)sampler->getSampleLength()) * getWidth();

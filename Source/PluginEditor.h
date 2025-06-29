@@ -48,9 +48,6 @@ public:
     void timerCallback() override;
     void changeListenerCallback(ChangeBroadcaster* source) override;
     void sliderValueChanged(juce::Slider* slider) override;
-    void saveSettings();
-    void loadSettings();
-    void loadFile(juce::File file);
     void mouseDown(const MouseEvent& event) override;
     std::unique_ptr<juce::MidiKeyboardComponent> keyboard;
     std::unique_ptr<EnvelopePanel> ampEnvelope = nullptr;
@@ -83,7 +80,7 @@ private:
     // access the processor object that created it.
     CustomLookAndFeel tlf;
     SamAudioProcessor& audioProcessor;
-    juce::String currentFile;
+
     juce::File currentSetFile;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamAudioProcessorEditor)

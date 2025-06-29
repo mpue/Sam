@@ -186,16 +186,13 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	// driveSlider->addListener(this);
 	addMouseListener(this,true);
 
-	loadSettings();
-
-	for (int i = 0; i < 128; i++) {
-		audioProcessor.samplers[i] = nullptr;
-	}
+	String dir = audioProcessor.loadSettings();
+	propertyViewLeft->getBrowser()->getModel()->setCurrentDir(new juce::File(dir));
+	propertyViewRight->getBrowser()->getModel()->setCurrentDir(new juce::File(dir));
 }
 
 SamAudioProcessorEditor::~SamAudioProcessorEditor()
-{
-	saveSettings();
+{	
 	audioProcessor.state.removeListener(this);
 	setLookAndFeel(nullptr);
 	keyboard = nullptr;
@@ -274,7 +271,7 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 			pitchSlider->setValue(audioProcessor.samplers[midiNoteNumber]->getPitchAsFloat());
 			
 			if (audioProcessor.samplers[midiNoteNumber]->hasSample()) {
-				sampleEditor->setSampler(audioProcessor.samplers[midiNoteNumber]);
+				sampleEditor->setSampler(audioProcessor.samplers[midiNoteNumber].get());
 			}
 			
 			a = audioProcessor.filterEnvelope->getParameters().attack;
@@ -326,7 +323,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 
 			juce::File file = chooser.getResult();
 
-			Sampler* s = new Sampler(audioProcessor.sampleRate, audioProcessor.bufferSize);
+			std::unique_ptr<Sampler> s = std::make_unique<Sampler>(audioProcessor.sampleRate, audioProcessor.bufferSize);
 			s->loadSample(file);
 			s->setLoop(true);
 			s->play();
@@ -334,7 +331,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 			if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
 				audioProcessor.samplers[audioProcessor.currentSampleIndex] = nullptr;
 			}
-			audioProcessor.samplers[audioProcessor.currentSampleIndex] = s;
+			audioProcessor.samplers[audioProcessor.currentSampleIndex] = std::move(s);
 		}
 	}
 	else if (button == loadSetButton.get()) {
@@ -344,7 +341,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 		if (chooser.browseForFileToOpen()) {
 
 			juce::File file = chooser.getResult();
-			loadFile(file);
+			audioProcessor.loadFile(file);
 
 		}
 	}
@@ -381,13 +378,12 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 			std::unique_ptr < juce::XmlElement > xml = audioFiles.createXml();
 			xml->writeToFile(file, "");
 			xml = nullptr;
-			saveSettings();
+			audioProcessor.saveSettings(file.getParentDirectory().getFullPathName());
 		}
 	}
 	else if (button == newSetButton.get()) {
 		for (int i = 0; i < 128; i++) {
-			if (audioProcessor.samplers[i] != nullptr) {
-				delete audioProcessor.samplers[i];
+			if (audioProcessor.samplers[i] != nullptr) {				
 				audioProcessor.samplers[i] = nullptr;
 			}
 		}
@@ -427,7 +423,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 			audioProcessor.recorder.stopRecording();
 			audioProcessor.isRecording = false;
 
-			Sampler* s = new Sampler(audioProcessor.sampleRate, audioProcessor.bufferSize);
+			std::unique_ptr<Sampler> s = std::make_unique<Sampler>(audioProcessor.sampleRate, audioProcessor.bufferSize);
 			s->loadSample(currentSetFile);
 			s->setLoop(true);
 			s->play();
@@ -435,8 +431,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 			if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
 				audioProcessor.samplers[audioProcessor.currentSampleIndex] = nullptr;
 			}
-			audioProcessor.samplers[audioProcessor.currentSampleIndex] = s;
-
+			audioProcessor.samplers[audioProcessor.currentSampleIndex] = std::move(s);
 			recordButton->setButtonText("Record");
 		}
 	}
@@ -460,10 +455,11 @@ void SamAudioProcessorEditor::changeListenerCallback(ChangeBroadcaster* source)
 	ExtendedFileBrowser* efb = dynamic_cast<ExtendedFileBrowser*>(source);
 	
 	if (efb->getSelectedFile().getFileExtension() == ".sam") {
-		loadFile(efb->getSelectedFile());
+		sampleEditor->setSampler(nullptr);
+		audioProcessor.loadFile(efb->getSelectedFile());		
 	}
 	else {
-		Sampler* s = new Sampler(audioProcessor.sampleRate, audioProcessor.bufferSize);
+		std::unique_ptr<Sampler> s = std::make_unique<Sampler>(audioProcessor.sampleRate, audioProcessor.bufferSize);
 		s->loadSample(efb->getSelectedFile());
 		s->setLoop(true);
 		s->play();
@@ -471,9 +467,9 @@ void SamAudioProcessorEditor::changeListenerCallback(ChangeBroadcaster* source)
 		if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
 			audioProcessor.samplers[audioProcessor.currentSampleIndex] = nullptr;
 		}
-		audioProcessor.samplers[audioProcessor.currentSampleIndex] = s;
-		if (s->hasSample()) {
-			sampleEditor->setSampler(s);
+		audioProcessor.samplers[audioProcessor.currentSampleIndex] = std::move(s);
+		if (audioProcessor.samplers[audioProcessor.currentSampleIndex]->hasSample()) {
+			sampleEditor->setSampler(audioProcessor.samplers[audioProcessor.currentSampleIndex].get());
 		}
 
 	}
@@ -504,124 +500,7 @@ void SamAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
 	}
 }
 
-void SamAudioProcessorEditor::saveSettings()
-{
-	String userHome = File::getSpecialLocation(File::userHomeDirectory).getFullPathName();
-	File appDir = File(userHome + "/.Sam");
 
-	if (!appDir.exists()) {
-		appDir.createDirectory();
-	}
-
-	File configFile = File(userHome + "/.Sam/settings.xml");
-
-	if (!configFile.exists()) {
-		configFile.create();
-	}
-	else {
-		configFile.deleteFile();
-		configFile = File(userHome + "/.Sam/settings.xml");
-		configFile.create();
-	}
-
-	ValueTree* v = new ValueTree("Settings");
-
-	v->setProperty("currentFile", currentFile, nullptr);
-	v->setProperty("leftCurrentDir", propertyViewLeft->browser->model->getCurrentDir(), nullptr);
-	v->setProperty("rightCurrentDir", propertyViewRight->browser->model->getCurrentDir(), nullptr);
-
-	std::unique_ptr<XmlElement> xml = v->createXml();
-	xml->writeToFile(configFile, "");
-
-	xml = nullptr;
-	delete v;
-}
-
-void SamAudioProcessorEditor::loadSettings()
-{
-	String userHome = File::getSpecialLocation(File::userHomeDirectory).getFullPathName();
-
-	File appDir = File(userHome + "/.Sam");
-
-	if (!appDir.exists()) {
-		appDir.createDirectory();
-	}
-
-	File configFile = File(userHome + "/.Sam/settings.xml");
-
-	if (configFile.exists()) {
-		std::unique_ptr<XmlElement> xml = XmlDocument(configFile).getDocumentElement();
-		ValueTree v = ValueTree::fromXml(*xml.get());
-		String path = v.getProperty("currentFile");
-		String sLeftDir = v.getProperty("leftCurrentDir");
-		String sRightDir = v.getProperty("rightCurrentDir");
-
-		juce::File* leftDir = new juce::File(sLeftDir);
-		juce::File* rightDir = new juce::File(sRightDir);
-
-		propertyViewLeft->browser->model->setCurrentDir(leftDir);
-		propertyViewRight->browser->model->setCurrentDir(rightDir);
-
-		if (path.length() > 0 && audioProcessor.sampleRate > 0) {
-			loadFile(juce::File(path));
-		}
-
-		xml = nullptr;
-	}
-}
-
-void SamAudioProcessorEditor::loadFile(juce::File file)
-{
-	if (!file.exists()) {
-		return;
-	}
-
-	std::unique_ptr<juce::XmlElement> xml = juce::XmlDocument(file).getDocumentElement();
-	juce::ValueTree v = juce::ValueTree::fromXml(*xml.get());
-	xml = nullptr;
-
-	/*
-	for (int i = 0; i < 128; i++) {
-		if (audioProcessor.samplers[i] != nullptr) {
-			delete audioProcessor.samplers[i];
-			audioProcessor.samplers[i] = nullptr;
-		}
-	}
-	*/
-
-	for (int i = 0; i < v.getNumChildren(); i++) {
-		Sampler* s = new Sampler(audioProcessor.sampleRate, audioProcessor.bufferSize);
-		s->loadSample(juce::File(v.getChild(i).getProperty("sample").toString()));
-
-		juce::String sLoop = v.getChild(i).getProperty("loop").toString();
-
-		if (sLoop == "true") {
-			s->setLoop(true);
-		}
-		else {
-			s->setLoop(false);
-		}
-		s->setStartPosition(v.getChild(i).getProperty("loopStart").toString().getLargeIntValue());
-		s->setEndPosition(v.getChild(i).getProperty("loopEnd").toString().getLargeIntValue());
-		s->setPitch(v.getChild(i).getProperty("pitch").toString().getFloatValue());
-
-		juce::ADSR::Parameters params;
-		params.attack = v.getChild(i).getProperty("amp_attack").toString().getFloatValue();
-		params.decay = v.getChild(i).getProperty("amp_decay").toString().getFloatValue();
-		params.sustain = v.getChild(i).getProperty("amp_sustain").toString().getFloatValue();
-		params.release = v.getChild(i).getProperty("amp_release").toString().getFloatValue();
-
-		s->envelope->setParameters(params);
-
-		s->play();
-		int index = v.getChild(i).getProperty("note").toString().getIntValue();
-		audioProcessor.samplers[index] = s;
-
-	}
-
-	currentFile = file.getFullPathName();
-	saveSettings();
-}
 
 void SamAudioProcessorEditor::mouseDown(const MouseEvent& event)
 {

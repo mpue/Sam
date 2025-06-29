@@ -36,15 +36,18 @@ public:
     }
     
     juce::var getDragSourceDescription (const juce::SparseSet<int>& currentlySelectedRows) override{
-        
-        if (!currentlySelectedRows.getTotalRange().isEmpty()) {
-            juce::File file = directoryList->getFile(currentlySelectedRows.getTotalRange().getStart());
-            return file.getFullPathName();
-        }
-        
-        return juce::var();
+    //    
+    //    if (!currentlySelectedRows.getTotalRange().isEmpty()) {
+    //        juce::File file = directoryList->getFile(currentlySelectedRows.getTotalRange().getStart());
+    //        return file.getFullPathName();
+    //    }
+    //    
+    //    return juce::var();
+        return {};
     }
     
+
+
 private:
     juce::DirectoryContentsList* directoryList;
     juce::String currentDirectory;
@@ -59,7 +62,6 @@ public:
     ExtendedFileBrowser(const juce::File& initialFileOrDirectory,const juce::WildcardFileFilter* fileFilter, FileBrowserModel* model, Sampler* sampler);
     ~ExtendedFileBrowser();
     
-    void mouseDrag (const juce::MouseEvent& event) override;
     void mouseDoubleClick(const juce::MouseEvent& event) override;
     void mouseDown(const juce::MouseEvent& event) override;
     void paint (juce::Graphics& g) override;
@@ -86,6 +88,8 @@ public:
     Sampler* getSampler() {
         return sampler;
     }
+
+
     
     FileBrowserModel* model = nullptr;
 private:

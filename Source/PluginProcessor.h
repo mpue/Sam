@@ -21,7 +21,7 @@ class SamAudioProcessorEditor;
 //==============================================================================
 /**
 */
-class SamAudioProcessor  : public juce::AudioProcessor
+class SamAudioProcessor : public juce::AudioProcessor
 {
 public:
     //==============================================================================
@@ -29,14 +29,14 @@ public:
     ~SamAudioProcessor() override;
 
     //==============================================================================
-    void prepareToPlay (double sampleRate, int samplesPerBlock) override;
+    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
-   #ifndef JucePlugin_PreferredChannelConfigurations
-    bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
-   #endif
+#ifndef JucePlugin_PreferredChannelConfigurations
+    bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
+#endif
 
-    void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
     //==============================================================================
     juce::AudioProcessorEditor* createEditor() override;
@@ -53,16 +53,15 @@ public:
     //==============================================================================
     int getNumPrograms() override;
     int getCurrentProgram() override;
-    void setCurrentProgram (int index) override;
-    const juce::String getProgramName (int index) override;
-    void changeProgramName (int index, const juce::String& newName) override;
+    void setCurrentProgram(int index) override;
+    const juce::String getProgramName(int index) override;
+    void changeProgramName(int index, const juce::String& newName) override;
 
     //==============================================================================
-    void getStateInformation (juce::MemoryBlock& destData) override;
-    void setStateInformation (const void* data, int sizeInBytes) override;
+    void getStateInformation(juce::MemoryBlock& destData) override;
+    void setStateInformation(const void* data, int sizeInBytes) override;
     std::unique_ptr<juce::AudioFormatManager> fmtMgr = nullptr;
     int currentSampleIndex = 0;
-    Sampler* samplers[128];
     int bufferSize;
     double sampleRate;
     std::unique_ptr <juce::ADSR> filterEnvelope = nullptr;
@@ -93,7 +92,15 @@ public:
     AudioRecorder recorder;
     bool isRecording = false;
 
+    void saveSettings(juce::String currentDirectory);
+    juce::String loadSettings();
+    void loadFile(juce::File file);
+    bool initialized = false;
+    bool loaded = false;
+    std::unique_ptr<Sampler> samplers[128] = { nullptr };
+
 private:
+    juce::File currentFile;
     float envValue = 0;
     juce::AudioSampleBuffer* tempBuffer = nullptr;
     SamAudioProcessorEditor* editor = nullptr;

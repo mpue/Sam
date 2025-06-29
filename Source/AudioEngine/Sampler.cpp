@@ -59,28 +59,17 @@ float Sampler::process() {
 }
 
 void Sampler::nextSample() {
-	if (sampleLength > 0) {
-		if (isLoop()) {
+	if (!isDone()) {
+		playbackPosition += pitch;
 
-			if (currentSample < sampleLength - 1 && currentSample < endPosition) {
-				currentSample++;
-			}
-			else {
-				currentSample = startPosition;
-			}
-			// currentSample = (currentSample + 1) % sampleLength;
-		}
-		else {
-			if (currentSample < sampleLength - 1 && currentSample < endPosition) {
-				currentSample++;
-			}
+		if (isLoop() && playbackPosition >= endPosition) {
+			playbackPosition = startPosition;
 		}
 	}
 
 	if (!envelope->isActive()) {
 		playing = false;
 	}
-
 }
 
 void Sampler::nextBlock()
@@ -88,8 +77,9 @@ void Sampler::nextBlock()
 
 }
 
-void Sampler::play() {
-
+void Sampler::play() 
+{
+	playbackPosition = startPosition;
 	playing = true;
 }
 
@@ -97,33 +87,26 @@ void Sampler::stop() {
 
 	playing = false;
 }
-
 float Sampler::getCurrentSample(int channel) {
+	if (!sampleBuffer || !loaded || isDone())
+		return 0.0f;
 
-	if (sampleBuffer != nullptr && sampleLength > 0 && !isDone() && sampleBuffer->getNumSamples() > 0) {
+	auto* in = sampleBuffer->getReadPointer(channel);
+	int total = sampleBuffer->getNumSamples();
 
-		if (pitch != 1) {
-			if (channel == 0) {
-				if (currentSample < sampleBuffer->getNumSamples()) {
-					return tempBufferLeft[currentSample] * volume;
-				}
-			}
-			else {
-				if (currentSample < sampleBuffer->getNumSamples()) {
-					return tempBufferRight[currentSample] * volume;
-				}
-			}
-		}
-		else {
-			if (currentSample < sampleBuffer->getNumSamples()) {
-				return sampleBuffer->getSample(channel, static_cast<int>(currentSample)) * volume;
-			}
-		}
+	if (playbackPosition >= total - 1)
+		return 0.0f;
 
-	}
+	// Lineare Interpolation
+	int index = static_cast<int>(playbackPosition);
+	float frac = static_cast<float>(playbackPosition - index);
 
-	return 0;
+	float sample1 = in[index];
+	float sample2 = (index + 1 < total) ? in[index + 1] : 0.0f;
+
+	return (sample1 + frac * (sample2 - sample1)) * volume;
 }
+
 
 float Sampler::getSampleAt(int channel, long pos) {
 	return sampleBuffer->getSample(channel, static_cast<int>(pos)) * volume;
@@ -131,6 +114,14 @@ float Sampler::getSampleAt(int channel, long pos) {
 
 void Sampler::loadSample(File file) {
 	
+	if (!file.getFileExtension().toLowerCase().contains("wav") &&
+		!file.getFileExtension().toLowerCase().contains("aif") &&
+		!file.getFileExtension().toLowerCase().contains("aiff") &&
+		!file.getFileExtension().toLowerCase().contains("mp3") &&	
+		!file.getFileExtension().toLowerCase().contains("ogg")) {
+		return;
+	}
+
 	AudioFormatReader* reader = afm->createReaderFor(file);
 
 	sampleLocation = file.getFullPathName();
@@ -224,31 +215,15 @@ void Sampler::setLoop(bool loop) {
 	this->loop = loop;
 }
 
-void Sampler::setPitch(float pitch) {
-	
-	this->pitch = pitch;
+void Sampler::setPitch(float newPitch) {
+	if (newPitch < 0.25f)
+		newPitch = 0.25f;
+	if (newPitch > 2.0f)
+		newPitch = 2.0f;
 
-	if (pitch < 0.25) {
-		pitch = 0.25;
-	}
-	if (pitch > 2) {
-		pitch = 2;
-	}
-
-	if (getSampleLength() > 0) {
-
-		const float* leftIn = sampleBuffer->getReadPointer(0);
-		const float* righIn = sampleBuffer->getReadPointer(1);
-
-		interpolatorLeft->process(pitch, leftIn, tempBufferLeft, getSampleLength());
-		interpolatorRight->process(pitch, righIn, tempBufferRight, getSampleLength());
-
-		interpolatorLeft->reset();
-		interpolatorRight->reset();
-
-	}
-
+	pitch = newPitch;
 }
+
 
 bool Sampler::isLoop() {
 	return this->loop;
@@ -278,3 +253,12 @@ void Sampler::rewindSamples(int num) {
 	}
 }
 
+float Sampler::getPlaybackPercent() const {
+	if (sampleLength <= 0)
+		return 0.0f;
+	return static_cast<float>(playbackPosition) / static_cast<float>(sampleLength);
+}
+
+double Sampler::getPlaybackPosition() const {
+	return playbackPosition;
+}

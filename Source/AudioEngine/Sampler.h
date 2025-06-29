@@ -105,10 +105,15 @@ public:
     
     juce::ADSR* envelope = nullptr;
     
+    float getPlaybackPercent() const;
+    double getPlaybackPosition() const;
 
 private:
     
-   
+    double playbackPosition = 0.0;          // Gleitkomma-Position im Sample
+    double pitch = 1.0;                     // Pitch-Faktor (1.0 = normal)
+
+
     float sampleRate;
     int bufferSize;
     
@@ -130,12 +135,10 @@ private:
     
     bool dirty = false;
     
-    float pitch = 1;
-    
     float* tempBufferLeft = nullptr;
     float* tempBufferRight = nullptr;
     
-    juce::String sampleLocation;
+    juce::String sampleLocation = "";
 
     juce::CatmullRomInterpolator* interpolatorLeft;
     juce::CatmullRomInterpolator* interpolatorRight;

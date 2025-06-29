@@ -1,4 +1,4 @@
-/*
+﻿/*
   ==============================================================================
 
 	This file contains the basic framework code for a JUCE plugin processor.
@@ -31,7 +31,7 @@ SamAudioProcessor::SamAudioProcessor()
 SamAudioProcessor::~SamAudioProcessor()
 {
 	for (int i = 0; i < 128; i++) {
-		delete samplers[i];
+		samplers[i] = nullptr;
 	}
 
 	defaultSampler = nullptr;
@@ -115,7 +115,7 @@ void SamAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	this->sampleRate = sampleRate;
 
 	for (int i = 0; i < 128; i++) {
-		samplers[i] = nullptr;
+		// samplers[i] = nullptr;
 		voices[i] = false;
 	}
 	tempBuffer = new juce::AudioSampleBuffer(2, samplesPerBlock);
@@ -132,6 +132,13 @@ void SamAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	filterEnvelope = std::make_unique<juce::ADSR>();
 	filterEnvelope->setSampleRate(sampleRate/256);
 	defaultSampler = std::make_unique<Sampler>(sampleRate, bufferSize);
+	
+	if (currentFile.existsAsFile())
+	{
+		loadFile(currentFile);
+		loaded = true;
+	}
+
 }
 
 void SamAudioProcessor::releaseResources()
@@ -340,15 +347,21 @@ juce::AudioProcessorEditor* SamAudioProcessor::createEditor()
 //==============================================================================
 void SamAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-	// You should use this method to store your parameters in the memory block.
-	// You could do that either as raw data, or use the XML or ValueTree classes
-	// as intermediaries to make it easy to save and load complex data.
+	juce::XmlElement root("SamAudioProcessorState");
+	root.setAttribute("samplesetPath", currentFile.getFullPathName());
+	saveSettings(currentFile.getParentDirectory().getFullPathName());	
+	copyXmlToBinary(root, destData);
 }
 
 void SamAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-	// You should use this method to restore your parameters from this memory block,
-	// whose contents will have been created by the getStateInformation() call.
+	loadSettings();
+	std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+
+	if (xmlState && xmlState->hasTagName("SamAudioProcessorState"))
+	{
+		currentFile = juce::File(xmlState->getStringAttribute("samplesetPath", ""));			
+	}
 }
 
 //==============================================================================
@@ -356,4 +369,131 @@ void SamAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
 	return new SamAudioProcessor();
+}
+
+void SamAudioProcessor::saveSettings(juce::String currentDirectory)
+{
+	String userHome = File::getSpecialLocation(File::userHomeDirectory).getFullPathName();
+	File appDir = File(userHome + "/.Sam");
+
+	if (!appDir.exists()) {
+		appDir.createDirectory();
+	}
+
+	File configFile = File(userHome + "/.Sam/settings.xml");
+
+	if (!configFile.exists()) {
+		configFile.create();
+	}
+	else {
+		configFile.deleteFile();
+		configFile = File(userHome + "/.Sam/settings.xml");
+		configFile.create();
+	}
+
+	ValueTree* v = new ValueTree("Settings");
+
+	juce::String leftDir = juce::File(currentDirectory).getFullPathName();
+	
+
+	v->setProperty("currentFile", currentFile.getFullPathName(), nullptr);
+	v->setProperty("leftCurrentDir",leftDir , nullptr);
+	v->setProperty("rightCurrentDir", leftDir, nullptr);
+	v->setProperty("sampleRate", sampleRate, nullptr);
+	v->setProperty("bufferSize", bufferSize, nullptr);
+	std::unique_ptr<XmlElement> xml = v->createXml();
+	xml->writeToFile(configFile, "");
+
+	xml = nullptr;
+	delete v;
+}
+
+juce::String SamAudioProcessor::loadSettings()
+{
+	String userHome = File::getSpecialLocation(File::userHomeDirectory).getFullPathName();
+
+	File appDir = File(userHome + "/.Sam");
+
+	if (!appDir.exists()) {
+		appDir.createDirectory();
+	}
+
+	File configFile = File(userHome + "/.Sam/settings.xml");
+
+	if (configFile.exists()) {
+		std::unique_ptr<XmlElement> xml = XmlDocument(configFile).getDocumentElement();
+		ValueTree v = ValueTree::fromXml(*xml.get());
+		String path = v.getProperty("currentFile");
+		String sLeftDir = v.getProperty("leftCurrentDir");
+		String sRightDir = v.getProperty("rightCurrentDir");
+		sampleRate = v.getProperty("sampleRate");
+		bufferSize = v.getProperty("bufferSize");
+
+		juce::File* leftDir = new juce::File(sLeftDir);
+		juce::File* rightDir = new juce::File(sRightDir);
+
+		//if (path.length() > 0 && sampleRate > 0) {
+		//	loadFile(juce::File(path));
+		//}
+
+		xml = nullptr;
+
+		return leftDir->getFullPathName();
+	}
+
+	return File::getCurrentWorkingDirectory().getFileName();
+}
+
+void SamAudioProcessor::loadFile(juce::File file)
+{
+	if (!file.exists()) {
+		return;
+	}
+
+	std::unique_ptr<juce::XmlElement> xml = juce::XmlDocument(file).getDocumentElement();
+	juce::ValueTree v = juce::ValueTree::fromXml(*xml.get());
+	xml = nullptr;
+
+	
+	for (int i = 0; i < 128; i++) {
+		if (samplers[i] != nullptr) {
+			samplers[i] = nullptr;
+		}
+	}
+	
+	int count = 0;
+
+	for (int i = 0; i < v.getNumChildren(); i++) {
+		std::unique_ptr <Sampler> s = std::make_unique<Sampler>(sampleRate, bufferSize);
+		s->loadSample(juce::File(v.getChild(i).getProperty("sample").toString()));
+
+		juce::String sLoop = v.getChild(i).getProperty("loop").toString();
+
+		if (sLoop == "true") {
+			s->setLoop(true);
+		}
+		else {
+			s->setLoop(false);
+		}
+		s->setStartPosition(v.getChild(i).getProperty("loopStart").toString().getLargeIntValue());
+		s->setEndPosition(v.getChild(i).getProperty("loopEnd").toString().getLargeIntValue());
+		s->setPitch(v.getChild(i).getProperty("pitch").toString().getFloatValue());
+
+		juce::ADSR::Parameters params;
+		params.attack = v.getChild(i).getProperty("amp_attack").toString().getFloatValue();
+		params.decay = v.getChild(i).getProperty("amp_decay").toString().getFloatValue();
+		params.sustain = v.getChild(i).getProperty("amp_sustain").toString().getFloatValue();
+		params.release = v.getChild(i).getProperty("amp_release").toString().getFloatValue();
+
+		s->envelope->setParameters(params);
+
+		s->play();
+		int index = v.getChild(i).getProperty("note").toString().getIntValue();
+		samplers[index] = std::move(s);
+		count++;
+	}
+	juce::Logger::writeToLog("Loaded " + juce::String(count) + " samplers.");
+
+	currentFile = file;
+	saveSettings(currentFile.getParentDirectory().getFullPathName());
 }

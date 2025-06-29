@@ -40,6 +40,7 @@ ExtendedFileBrowser::ExtendedFileBrowser(const File& initialFileOrDirectory, con
 	view = new Viewport();	
 	view->setViewedComponent(table);
 	addAndMakeVisible(view);
+	
 
 	this->sampler = sampler;
 
@@ -48,7 +49,6 @@ ExtendedFileBrowser::ExtendedFileBrowser(const File& initialFileOrDirectory, con
 	loadState();
 
 	model->update();
-
 
 	juce::Array<juce::File> drives;
 
@@ -63,7 +63,6 @@ ExtendedFileBrowser::ExtendedFileBrowser(const File& initialFileOrDirectory, con
 		addAndMakeVisible(button);
 		button->addListener(this);
 	}
-
 
 	repaint();
 }
@@ -80,24 +79,6 @@ ExtendedFileBrowser::~ExtendedFileBrowser() {
 	for (int i = 0; i < driveButtons.size(); i++) {
 		delete driveButtons.at(i);
 	}
-}
-
-void ExtendedFileBrowser::mouseDrag(const juce::MouseEvent& event) {
-	/*
-	var description;
-
-	// setDragImageForIndex(0, ImageCache::getFromMemory(BinaryData::module_png, BinaryData::module_pngSize));
-	startDragging(description,table);
-	 */
-
-	 /*
-	 StringArray files = StringArray();
-	 if (selectedFile != nullptr && selectedFile->getFullPathName().isNotEmpty()) {
-		 files.add(selectedFile->getFullPathName());
-		 DragAndDropContainer::performExternalDragDropOfFiles(files, false);
-	 }
-	  */
-
 }
 
 void ExtendedFileBrowser::paint(juce::Graphics& g) {
@@ -248,8 +229,6 @@ void FileBrowserModel::paintCell(Graphics& g,
 		g.drawText(text, 0, 0, width, height, juce::Justification::right);
 	}
 
-
-
 }
 
 void FileBrowserModel::paintRowBackground(Graphics& g,
@@ -286,7 +265,6 @@ void ExtendedFileBrowser::saveState() {
 }
 
 void ExtendedFileBrowser::loadState() {
-	
 	
 }
 
