@@ -2,7 +2,8 @@
 
 <JUCERPROJECT id="bxmuhw" name="Sam" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" companyName="Matthias Pueski"
-              pluginCharacteristicsValue="pluginWantsMidiIn">
+              pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn"
+              pluginVST3Category="Fx,Sampler">
   <MAINGROUP id="gM57QM" name="Sam">
     <GROUP id="{740F0B0F-DC78-6AE2-C9E5-72C1850664ED}" name="images">
       <FILE id="uoaovQ" name="carbon.jpg" compile="0" resource="1" file="images/carbon.jpg"/>

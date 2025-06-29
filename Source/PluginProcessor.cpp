@@ -12,15 +12,13 @@
 SamAudioProcessor::SamAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
 	: AudioProcessor(BusesProperties()
-#if ! JucePlugin_IsMidiEffect
-#if ! JucePlugin_IsSynth
-		.withInput("Stereo In", juce::AudioChannelSet::stereo(), true)
+
+	.withInput("Stereo In", juce::AudioChannelSet::stereo(), true)
 		.withInput("Mono In", juce::AudioChannelSet::mono(), true)
-#endif
+
 		.withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
 	)
-#endif
 {
 	fmtMgr = std::make_unique<juce::AudioFormatManager>();
 	fmtMgr->registerBasicFormats();
