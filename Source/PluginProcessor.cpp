@@ -58,6 +58,7 @@ void SamAudioProcessor::handleNoteOn(juce::MidiKeyboardState* source, int midiCh
 
 		numVoices++;
 		samplers[midiNoteNumber]->getAmpEnvelope()->noteOn(); //(m.getVelocity());
+		samplers[midiNoteNumber]->setVolume(velocity);
 		samplers[midiNoteNumber]->setCurrentSample(samplers[midiNoteNumber]->getStartPosition());
 		samplers[midiNoteNumber]->play();
 		voices[midiNoteNumber] = true;
@@ -285,7 +286,7 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 		{
 			if (m.isNoteOn())
 			{
-				state.noteOn(m.getChannel(), m.getNoteNumber(),m.getVelocity() / 128);
+				state.noteOn(m.getChannel(), m.getNoteNumber(),m.getVelocity()/128.0f);
 			}
 			if (m.isNoteOff())
 			{
