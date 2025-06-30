@@ -24,6 +24,7 @@ SamAudioProcessor::SamAudioProcessor()
 	fmtMgr->registerBasicFormats();
 	mappings = ControllerMappings();
 	sequencer = new Sequencer();
+	state.addListener(this);
 }
 
 SamAudioProcessor::~SamAudioProcessor()
@@ -46,6 +47,41 @@ SamAudioProcessor::~SamAudioProcessor()
 const juce::String SamAudioProcessor::getName() const
 {
 	return JucePlugin_Name;
+}
+
+void SamAudioProcessor::handleNoteOn(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity)
+{
+	if (samplers[midiNoteNumber] != nullptr) {
+		if (numVoices == 0) {
+			samplers[midiNoteNumber]->getFilterEnvelope()->noteOn();
+		}
+
+		numVoices++;
+		samplers[midiNoteNumber]->getAmpEnvelope()->noteOn(); //(m.getVelocity());
+		samplers[midiNoteNumber]->setCurrentSample(samplers[midiNoteNumber]->getStartPosition());
+		samplers[midiNoteNumber]->play();
+		voices[midiNoteNumber] = true;
+	}
+	// state.noteOn(midiChannel, midiNoteNumber, velocity / 128);
+}
+
+void SamAudioProcessor::handleNoteOff(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity)
+{
+
+	if (samplers[midiNoteNumber] != nullptr) {
+		if (numVoices > 0) {
+			numVoices--;
+		}
+		else {
+			samplers[midiNoteNumber]->getFilterEnvelope()->noteOff();
+		}
+		//samplers[m.getNoteNumber()]->stop();
+
+		samplers[midiNoteNumber]->getAmpEnvelope()->noteOff();
+		voices[midiNoteNumber] = false;
+	}
+
+	// state.noteOff(midiChannel, midiNoteNumber, velocity / 128);
 }
 
 bool SamAudioProcessor::acceptsMidi() const
@@ -249,37 +285,11 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 		{
 			if (m.isNoteOn())
 			{
-				if (samplers[m.getNoteNumber()] != nullptr) {
-					if (numVoices == 0) {
-						samplers[m.getNoteNumber()]->getFilterEnvelope()->noteOn();
-					}
-
-					numVoices++;
-					samplers[m.getNoteNumber()]->getAmpEnvelope()->noteOn(); //(m.getVelocity());
-					samplers[m.getNoteNumber()]->setCurrentSample(samplers[m.getNoteNumber()]->getStartPosition());
-					samplers[m.getNoteNumber()]->play();
-					voices[m.getNoteNumber()] = true;
-				}
-				state.noteOn(m.getChannel(), m.getNoteNumber(), m.getVelocity() / 128);
+				state.noteOn(m.getChannel(), m.getNoteNumber(),m.getVelocity() / 128);
 			}
 			if (m.isNoteOff())
 			{
-
-				if (samplers[m.getNoteNumber()] != nullptr) {
-					if (numVoices > 0) {
-						numVoices--;
-					}
-					else {
-						samplers[m.getNoteNumber()]->getFilterEnvelope()->noteOff();
-					}
-					//samplers[m.getNoteNumber()]->stop();
-
-					samplers[m.getNoteNumber()]->getAmpEnvelope()->noteOff();
-					voices[m.getNoteNumber()] = false;
-				}
-
-				state.noteOff(m.getChannel(), m.getNoteNumber(), m.getVelocity() / 128);
-
+				state.noteOff(m.getChannel(), m.getNoteNumber(), 0);
 			}
 			if (m.isAftertouch())
 			{
@@ -478,11 +488,18 @@ void SamAudioProcessor::loadFile(juce::File file)
 		params.decay = v.getChild(i).getProperty("amp_decay").toString().getFloatValue();
 		params.sustain = v.getChild(i).getProperty("amp_sustain").toString().getFloatValue();
 		params.release = v.getChild(i).getProperty("amp_release").toString().getFloatValue();
-
 		s->getAmpEnvelope()->setParameters(params);
+		
+		juce::ADSR::Parameters filterParams;
+		filterParams.attack = v.getChild(i).getProperty("filter_attack").toString().getFloatValue();
+		filterParams.decay = v.getChild(i).getProperty("filter_decay").toString().getFloatValue();
+		filterParams.sustain = v.getChild(i).getProperty("filter_sustain").toString().getFloatValue();
+		filterParams.release = v.getChild(i).getProperty("filter_release").toString().getFloatValue();
+		s.get()->getFilterEnvelope()->setParameters(filterParams);
 
 		s->play();
 		int index = v.getChild(i).getProperty("note").toString().getIntValue();
+				
 		samplers[index] = std::move(s);
 		count++;
 	}

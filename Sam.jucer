@@ -39,6 +39,8 @@
       <GROUP id="{A898B61B-8004-376A-35C8-7E8A2DCF217A}" name="UI">
         <FILE id="ibFBlf" name="Cell.cpp" compile="1" resource="0" file="Source/UI/Cell.cpp"/>
         <FILE id="DbnL0m" name="Cell.h" compile="0" resource="0" file="Source/UI/Cell.h"/>
+        <FILE id="hnSkWP" name="CustomKeyboard.h" compile="0" resource="0"
+              file="Source/UI/CustomKeyboard.h"/>
         <FILE id="Inffp3" name="CustomLookAndFeel.cpp" compile="1" resource="0"
               file="Source/UI/CustomLookAndFeel.cpp"/>
         <FILE id="NEOahB" name="CustomLookAndFeel.h" compile="0" resource="0"

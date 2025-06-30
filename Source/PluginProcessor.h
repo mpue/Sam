@@ -21,7 +21,7 @@ class SamAudioProcessorEditor;
 //==============================================================================
 /**
 */
-class SamAudioProcessor : public juce::AudioProcessor
+class SamAudioProcessor : public juce::AudioProcessor, public juce::MidiKeyboardStateListener
 {
 public:
     //==============================================================================
@@ -44,6 +44,11 @@ public:
 
     //==============================================================================
     const juce::String getName() const override;
+
+    void handleNoteOn(juce::MidiKeyboardState* source,
+        int midiChannel, int midiNoteNumber, float velocity) override;
+    void handleNoteOff(juce::MidiKeyboardState* source,
+        int midiChannel, int midiNoteNumber, float velocity) override;
 
     bool acceptsMidi() const override;
     bool producesMidi() const override;

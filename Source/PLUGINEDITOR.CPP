@@ -20,7 +20,7 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	setSize(1024, 1024);
 
 
-	keyboard = std::make_unique<juce::MidiKeyboardComponent>(audioProcessor.state, juce::MidiKeyboardComponent::Orientation::horizontalKeyboard);
+	keyboard = std::make_unique<CustomKeyboard>(audioProcessor.state, juce::MidiKeyboardComponent::Orientation::horizontalKeyboard);
 	keyboard->setSize(750, 100);
 	keyboard->setTopLeftPosition(200, 880);
 	keyboard->setWantsKeyboardFocus(false);
@@ -76,14 +76,28 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 
 	mainViewButton = std::make_unique<juce::TextButton>("Main");
 	mainViewButton->setSize(140, 20);
-	mainViewButton->setTopLeftPosition(560, 350);
-	// addAndMakeVisible(mainViewButton.get());
+	mainViewButton->setTopLeftPosition(455, 320);
+	addAndMakeVisible(mainViewButton.get());
+
+	mapViewButton = std::make_unique<juce::TextButton>("Mapping");
+	mapViewButton->setSize(140, 20);
+	mapViewButton->setTopLeftPosition(455, 345);
+	addAndMakeVisible(mapViewButton.get());
 
 	sequencerViewButton = std::make_unique<juce::TextButton>("Sequencer");
 	sequencerViewButton->setSize(140, 20);
-	sequencerViewButton->setTopLeftPosition(560, 375);
-	// addAndMakeVisible(sequencerViewButton.get());
+	sequencerViewButton->setTopLeftPosition(455, 370);
+	addAndMakeVisible(sequencerViewButton.get());
 
+	modViewButton = std::make_unique<juce::TextButton>("Modulation");
+	modViewButton->setSize(140, 20);
+	modViewButton->setTopLeftPosition(455, 395);
+	addAndMakeVisible(modViewButton.get());
+
+	fxViewButton = std::make_unique<juce::TextButton>("Effects");
+	fxViewButton->setSize(140, 20);
+	fxViewButton->setTopLeftPosition(455, 420);
+	addAndMakeVisible(fxViewButton.get());
 
 	pitchSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::LinearHorizontal, juce::Slider::TextEntryBoxPosition::TextBoxRight);
 	pitchSlider->setSize(200, 24);
@@ -180,6 +194,8 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	resoSlider->addListener(this);
 	amtSlider->addListener(this);
 	pitchSlider->addListener(this);
+	modViewButton->addListener(this);
+	fxViewButton->addListener(this);	
 	sequencerViewButton->addListener(this);
 	mainViewButton->addListener(this);
 
@@ -220,6 +236,9 @@ SamAudioProcessorEditor::~SamAudioProcessorEditor()
 	mainViewButton = nullptr;
 	sequencerViewButton = nullptr;
 	recordButton = nullptr;
+	modViewButton = nullptr;
+	fxViewButton = nullptr;
+	mapViewButton = nullptr;
 	// sequenceEditor = nullptr;
 }
 
@@ -347,7 +366,11 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 
 			juce::File file = chooser.getResult();
 			audioProcessor.loadFile(file);
-
+			for (int i = 0; i < 128; i++) {
+				if (audioProcessor.samplers[i] != nullptr) {
+					keyboard->setNoteColour(i, juce::Colours::green);
+				}
+			}
 		}
 	}
 	else if (button == saveSetButton.get()) {
@@ -371,6 +394,11 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 					file.setProperty("amp_decay", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().decay, nullptr);
 					file.setProperty("amp_sustain", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().sustain, nullptr);
 					file.setProperty("amp_release", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().release, nullptr);
+					file.setProperty("filter_attack",  audioProcessor.samplers[i]->getFilterEnvelope()->getParameters().attack, nullptr);
+					file.setProperty("filter_decay",   audioProcessor.samplers[i]->getFilterEnvelope()->getParameters().decay, nullptr);
+					file.setProperty("filter_sustain", audioProcessor.samplers[i]->getFilterEnvelope()->getParameters().sustain, nullptr);
+					file.setProperty("filter_release", audioProcessor.samplers[i]->getFilterEnvelope()->getParameters().release, nullptr);
+
 					file.setProperty("loopStart", audioProcessor.samplers[i]->getStartPosition(), nullptr);
 					file.setProperty("loopEnd", audioProcessor.samplers[i]->getEndPosition(), nullptr);
 					file.setProperty("pitch", audioProcessor.samplers[i]->getPitchAsFloat(), nullptr);
@@ -458,27 +486,40 @@ void SamAudioProcessorEditor::timerCallback()
 void SamAudioProcessorEditor::changeListenerCallback(ChangeBroadcaster* source)
 {
 	ExtendedFileBrowser* efb = dynamic_cast<ExtendedFileBrowser*>(source);
-	
-	if (efb->getSelectedFile().getFileExtension() == ".sam") {
-		sampleEditor->setSampler(nullptr);
-		audioProcessor.loadFile(efb->getSelectedFile());		
-	}
-	else {
-		std::unique_ptr<Sampler> s = std::make_unique<Sampler>(audioProcessor.sampleRate, audioProcessor.bufferSize);
-		s->loadSample(efb->getSelectedFile());
-		s->setLoop(true);
-		s->play();
 
-		if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
-			audioProcessor.samplers[audioProcessor.currentSampleIndex] = nullptr;
-		}
-		audioProcessor.samplers[audioProcessor.currentSampleIndex] = std::move(s);
-		if (audioProcessor.samplers[audioProcessor.currentSampleIndex]->hasSample()) {
-			sampleEditor->setSampler(audioProcessor.samplers[audioProcessor.currentSampleIndex].get());
-		}
+	if (efb != nullptr) {
 
+		if (efb->getSelectedFile().getFileExtension() == ".sam") {
+			sampleEditor->setSampler(nullptr);
+			audioProcessor.loadFile(efb->getSelectedFile());	
+
+		}
+		else {
+			std::unique_ptr<Sampler> s = std::make_unique<Sampler>(audioProcessor.sampleRate, audioProcessor.bufferSize);
+			s->loadSample(efb->getSelectedFile());
+			s->setLoop(true);
+			s->play();
+
+			if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
+				audioProcessor.samplers[audioProcessor.currentSampleIndex] = nullptr;
+			}
+			audioProcessor.samplers[audioProcessor.currentSampleIndex] = std::move(s);
+			if (audioProcessor.samplers[audioProcessor.currentSampleIndex]->hasSample()) {
+				sampleEditor->setSampler(audioProcessor.samplers[audioProcessor.currentSampleIndex].get());
+			}
+
+		}
 	}
-	
+
+	for (int i = 0; i < 128; i++) {
+		if (audioProcessor.samplers[i] != nullptr) {
+			keyboard->setNoteColour(i, juce::Colours::green.brighter());
+		}
+		else {
+			keyboard->clearNoteColour(i);
+		}
+	}
+
 	sampleEditor->repaint();
 }
 

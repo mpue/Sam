@@ -18,6 +18,7 @@
 #include "UI/PropertyView.h"
 #include "UI/SampleEditor.h"
 #include "UI/SequenceEditor.h"
+#include "UI/CustomKeyboard.h"
 //==============================================================================
 /**
 */
@@ -49,7 +50,7 @@ public:
     void changeListenerCallback(ChangeBroadcaster* source) override;
     void sliderValueChanged(juce::Slider* slider) override;
     void mouseDown(const MouseEvent& event) override;
-    std::unique_ptr<juce::MidiKeyboardComponent> keyboard;
+    std::unique_ptr<CustomKeyboard> keyboard;
     std::unique_ptr<EnvelopePanel> ampEnvelope = nullptr;
     std::unique_ptr<EnvelopePanel> filterEnvelope = nullptr;
     std::unique_ptr <juce::Button> loadButton = nullptr;
@@ -72,7 +73,10 @@ public:
     std::unique_ptr <SampleEditor> sampleEditor = nullptr;
     // std::unique_ptr <SequenceEditor> sequenceEditor = nullptr;
     std::unique_ptr <juce::Slider> pitchSlider = nullptr;
-    std::unique_ptr <juce::Button> mainViewButton = nullptr;
+    std::unique_ptr <juce::Button> mainViewButton = nullptr;    
+    std::unique_ptr <juce::Button> mapViewButton = nullptr;
+    std::unique_ptr <juce::Button> fxViewButton = nullptr;
+    std::unique_ptr <juce::Button> modViewButton = nullptr;
     std::unique_ptr <juce::Button> sequencerViewButton = nullptr;
     std::unique_ptr <juce::Button> recordButton = nullptr;
 private:
@@ -85,3 +89,4 @@ private:
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamAudioProcessorEditor)
 };
+
