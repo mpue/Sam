@@ -13,6 +13,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Oszillator.h"
 #include "ADSR.h"
+#include "MultimodeFilter.h"
 
 class Sampler : public Oszillator {
 
@@ -102,9 +103,14 @@ public:
     juce::String getSampleLocation() {
         return sampleLocation;
     }
-    
-    juce::ADSR* envelope = nullptr;
-    
+
+    juce::ADSR* getAmpEnvelope() {
+        return ampEnvelope.get();
+	}
+    juce::ADSR* getFilterEnvelope() {
+        return filterEnvelope.get();
+    }
+
     float getPlaybackPercent() const;
     double getPlaybackPosition() const;
 
@@ -113,6 +119,8 @@ private:
     double playbackPosition = 0.0;          // Gleitkomma-Position im Sample
     double pitch = 1.0;                     // Pitch-Faktor (1.0 = normal)
 
+    std::unique_ptr <juce::ADSR> ampEnvelope = nullptr;
+    std::unique_ptr <juce::ADSR> filterEnvelope = nullptr;
 
     float sampleRate;
     int bufferSize;
@@ -143,4 +151,7 @@ private:
     juce::CatmullRomInterpolator* interpolatorLeft;
     juce::CatmullRomInterpolator* interpolatorRight;
     
+    std::unique_ptr<MultimodeFilter> lpfLeftStage1 = nullptr;
+    std::unique_ptr<MultimodeFilter> lpfRightStage1 = nullptr;
+
 };

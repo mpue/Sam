@@ -63,8 +63,7 @@ public:
     std::unique_ptr<juce::AudioFormatManager> fmtMgr = nullptr;
     int currentSampleIndex = 0;
     int bufferSize;
-    double sampleRate;
-    std::unique_ptr <juce::ADSR> filterEnvelope = nullptr;
+    double sampleRate;    
     bool voices[128];
     int numVoices = 0;
 

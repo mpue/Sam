@@ -127,8 +127,6 @@ void SamAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 
 	lpfLeftStage1->coefficients(sampleRate, cutoff, resonance);
 	lpfRightStage1->coefficients(sampleRate, cutoff, resonance);
-	filterEnvelope = std::make_unique<juce::ADSR>();
-	filterEnvelope->setSampleRate(sampleRate/256);
 	defaultSampler = std::make_unique<Sampler>(sampleRate, bufferSize);
 	
 	if (currentFile.existsAsFile())
@@ -200,7 +198,7 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 
 				for (int i = 0; i < bufferSize; i++) {
 
-					envValue = samplers[j]->envelope->getNextSample();
+					envValue = samplers[j]->getAmpEnvelope()->getNextSample();
 					samplers[j]->nextSample();
 
 					float left = samplers[j]->getCurrentSample(0) * envValue;
@@ -210,18 +208,18 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 					buffer.addSample(1, i, right);
 
 				}
+				if (samplers[j]->getFilterEnvelope() != nullptr) {
+					float f = cutoff + (samplers[j]->getFilterEnvelope()->getNextSample() * amount * (22000 - cutoff));
+					if (f < 0) {
+						f = 0;
+					}
+					lpfLeftStage1->coefficients(sampleRate, f, resonance);
+				}
 
 			}
 
 		}
 
-		if (filterEnvelope != nullptr) {
-			float f = cutoff + (filterEnvelope->getNextSample() * amount * (22000 - cutoff));
-			if (f < 0) {
-				f = 0;
-			}
-			lpfLeftStage1->coefficients(sampleRate, f, resonance);
-		}
 
 		currentSample = (currentSample + bufferSize) % buffer.getNumSamples();
 		magnitude = buffer.getMagnitude(currentSample, bufferSize);
@@ -251,15 +249,13 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 		{
 			if (m.isNoteOn())
 			{
-
-				if (numVoices == 0) {
-					filterEnvelope->noteOn();
-				}
-
-				numVoices++;
-
 				if (samplers[m.getNoteNumber()] != nullptr) {
-					samplers[m.getNoteNumber()]->envelope->noteOn(); //(m.getVelocity());
+					if (numVoices == 0) {
+						samplers[m.getNoteNumber()]->getFilterEnvelope()->noteOn();
+					}
+
+					numVoices++;
+					samplers[m.getNoteNumber()]->getAmpEnvelope()->noteOn(); //(m.getVelocity());
 					samplers[m.getNoteNumber()]->setCurrentSample(samplers[m.getNoteNumber()]->getStartPosition());
 					samplers[m.getNoteNumber()]->play();
 					voices[m.getNoteNumber()] = true;
@@ -268,17 +264,17 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 			}
 			if (m.isNoteOff())
 			{
-				if (numVoices > 0) {
-					numVoices--;
-				}
-				else {
-					filterEnvelope->noteOff();
-				}
 
 				if (samplers[m.getNoteNumber()] != nullptr) {
+					if (numVoices > 0) {
+						numVoices--;
+					}
+					else {
+						samplers[m.getNoteNumber()]->getFilterEnvelope()->noteOff();
+					}
 					//samplers[m.getNoteNumber()]->stop();
 
-					samplers[m.getNoteNumber()]->envelope->noteOff();
+					samplers[m.getNoteNumber()]->getAmpEnvelope()->noteOff();
 					voices[m.getNoteNumber()] = false;
 				}
 
@@ -483,7 +479,7 @@ void SamAudioProcessor::loadFile(juce::File file)
 		params.sustain = v.getChild(i).getProperty("amp_sustain").toString().getFloatValue();
 		params.release = v.getChild(i).getProperty("amp_release").toString().getFloatValue();
 
-		s->envelope->setParameters(params);
+		s->getAmpEnvelope()->setParameters(params);
 
 		s->play();
 		int index = v.getChild(i).getProperty("note").toString().getIntValue();

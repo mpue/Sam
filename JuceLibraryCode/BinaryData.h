@@ -48,7 +48,7 @@ namespace BinaryData
     const int            sam_pngSize = 19594;
 
     extern const char*   sam2_png;
-    const int            sam2_pngSize = 1704854;
+    const int            sam2_pngSize = 1599347;
 
     extern const char*   vintage_vu_png;
     const int            vintage_vu_pngSize = 30329;

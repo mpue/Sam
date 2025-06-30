@@ -30,9 +30,15 @@ Sampler::Sampler(float sampleRate, int bufferSize) {
 	this->sampleBuffer = new AudioSampleBuffer(2, 1024 * 1024);
 	afm = new  juce::AudioFormatManager();
 	afm->registerBasicFormats();
-	envelope = new juce::ADSR();
-	envelope->setSampleRate(sampleRate*5);
-	
+	ampEnvelope = std::make_unique<juce::ADSR>();
+	ampEnvelope->setSampleRate(sampleRate);
+	filterEnvelope = std::make_unique<juce::ADSR>();
+	filterEnvelope->setSampleRate(sampleRate);
+	lpfLeftStage1 = std::make_unique<MultimodeFilter>();
+	lpfRightStage1 = std::make_unique<MultimodeFilter>();
+	lpfLeftStage1->coefficients(sampleRate, 22000.0f, 0.1f);
+	lpfRightStage1->coefficients(sampleRate, 22000.0, 0.1f);
+
 }
 
 Sampler::~Sampler() {
@@ -48,7 +54,8 @@ Sampler::~Sampler() {
 	delete interpolatorLeft;
 	delete interpolatorRight;
 	delete afm;
-	delete envelope;
+	ampEnvelope = nullptr;
+	filterEnvelope = nullptr;
 }
 
 float Sampler::process() {
@@ -67,7 +74,7 @@ void Sampler::nextSample() {
 		}
 	}
 
-	if (!envelope->isActive()) {
+	if (!ampEnvelope->isActive()) {
 		playing = false;
 	}
 }
@@ -104,7 +111,15 @@ float Sampler::getCurrentSample(int channel) {
 	float sample1 = in[index];
 	float sample2 = (index + 1 < total) ? in[index + 1] : 0.0f;
 
-	return (sample1 + frac * (sample2 - sample1)) * volume;
+	float out = (sample1 + frac * (sample2 - sample1)) * volume;
+
+	if (channel == 0) {
+		lpfLeftStage1->processMono(0, &out, 1);
+	}	
+	else if (channel == 1) {
+		lpfRightStage1->processMono(0, &out, 1);
+	}	
+	return out;
 }
 
 

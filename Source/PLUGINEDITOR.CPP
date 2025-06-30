@@ -42,12 +42,12 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	recordButton->addListener(this);
 
 	ampEnvelope = std::make_unique<EnvelopePanel>();
-	ampEnvelope->setSize(500, 195);
+	ampEnvelope->setSize(400, 195);
 	ampEnvelope->setTopLeftPosition(30, 650);
 	addAndMakeVisible(ampEnvelope.get());
 
 	filterEnvelope = std::make_unique<EnvelopePanel>();
-	filterEnvelope->setSize(500, 195);
+	filterEnvelope->setSize(400, 195);
 	filterEnvelope->setTopLeftPosition(622, 650);
 	addAndMakeVisible(filterEnvelope.get());
 
@@ -87,7 +87,7 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 
 	pitchSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::LinearHorizontal, juce::Slider::TextEntryBoxPosition::TextBoxRight);
 	pitchSlider->setSize(200, 24);
-	pitchSlider->setTopLeftPosition(800, 273);
+	pitchSlider->setTopLeftPosition(780, 273);
 	pitchSlider->setRange(0.25, 1.99);
 	pitchSlider->setOpaque(false);
 	pitchSlider->setValue(1);
@@ -260,11 +260,15 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 			noteLabel->setText("current : " + juce::String(midiNoteNumber), juce::NotificationType::dontSendNotification);
 			// audioProcessor.samplers[midiNoteNumber]->play();
 			// 
-			float a = audioProcessor.samplers[midiNoteNumber]->envelope->getParameters().attack;
-			float d = audioProcessor.samplers[midiNoteNumber]->envelope->getParameters().decay;
-			float s = audioProcessor.samplers[midiNoteNumber]->envelope->getParameters().sustain;
-			float r = audioProcessor.samplers[midiNoteNumber]->envelope->getParameters().release;
+
+			ampEnvelope->setEnvelope(audioProcessor.samplers[midiNoteNumber]->getAmpEnvelope());
+
+			float a = audioProcessor.samplers[midiNoteNumber]->getAmpEnvelope()->getParameters().attack;
+			float d = audioProcessor.samplers[midiNoteNumber]->getAmpEnvelope()->getParameters().decay;
+			float s = audioProcessor.samplers[midiNoteNumber]->getAmpEnvelope()->getParameters().sustain;
+			float r = audioProcessor.samplers[midiNoteNumber]->getAmpEnvelope()->getParameters().release;
 			//// 
+			
 			ampEnvelope->setADSR(a, d, s, r);
 			
 			this->loopButton->setToggleState(audioProcessor.samplers[midiNoteNumber]->isLoop(), juce::NotificationType::dontSendNotification);
@@ -273,11 +277,12 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 			if (audioProcessor.samplers[midiNoteNumber]->hasSample()) {
 				sampleEditor->setSampler(audioProcessor.samplers[midiNoteNumber].get());
 			}
-			
-			a = audioProcessor.filterEnvelope->getParameters().attack;
-			d = audioProcessor.filterEnvelope->getParameters().decay;
-			s = audioProcessor.filterEnvelope->getParameters().sustain;
-			r = audioProcessor.filterEnvelope->getParameters().release;
+			filterEnvelope->setEnvelope(audioProcessor.samplers[midiNoteNumber]->getFilterEnvelope());
+
+			a = audioProcessor.samplers[midiNoteNumber]->getFilterEnvelope()->getParameters().attack;
+			d = audioProcessor.samplers[midiNoteNumber]->getFilterEnvelope()->getParameters().decay;
+			s = audioProcessor.samplers[midiNoteNumber]->getFilterEnvelope()->getParameters().sustain;
+			r = audioProcessor.samplers[midiNoteNumber]->getFilterEnvelope()->getParameters().release;
 			
 			filterEnvelope->setADSR(a, d, s, r);
 			
@@ -362,10 +367,10 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 					file.setProperty("note", i, nullptr);
 					file.setProperty("loop", audioProcessor.samplers[i]->isLoop(), nullptr);
 					file.setProperty("sample", audioProcessor.samplers[i]->getSampleLocation(), nullptr);
-					file.setProperty("amp_attack", audioProcessor.samplers[i]->envelope->getParameters().attack, nullptr);
-					file.setProperty("amp_decay", audioProcessor.samplers[i]->envelope->getParameters().decay, nullptr);
-					file.setProperty("amp_sustain", audioProcessor.samplers[i]->envelope->getParameters().sustain, nullptr);
-					file.setProperty("amp_release", audioProcessor.samplers[i]->envelope->getParameters().release, nullptr);
+					file.setProperty("amp_attack", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().attack, nullptr);
+					file.setProperty("amp_decay", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().decay, nullptr);
+					file.setProperty("amp_sustain", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().sustain, nullptr);
+					file.setProperty("amp_release", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().release, nullptr);
 					file.setProperty("loopStart", audioProcessor.samplers[i]->getStartPosition(), nullptr);
 					file.setProperty("loopEnd", audioProcessor.samplers[i]->getEndPosition(), nullptr);
 					file.setProperty("pitch", audioProcessor.samplers[i]->getPitchAsFloat(), nullptr);
