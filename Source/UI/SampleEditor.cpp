@@ -64,6 +64,37 @@ void SampleEditor::paint(juce::Graphics& g)
 	}
 }
 
+float SampleEditor::screenToSample(float screenX) const
+{
+	float norm = (screenX + offset) * zoom / getWidth();
+	return juce::jlimit(0.0f, float(sampler->getSampleLength() - 1),
+		norm * sampler->getSampleLength());
+}
+
+
+void SampleEditor::mouseWheelMove(const juce::MouseEvent& e,
+	const juce::MouseWheelDetails& wheel)
+{
+	if (sampler == nullptr || wheel.deltaY == 0.0f)
+		return;
+
+	const float zoomFactor = 1.1f;
+	float oldZoom = zoom;
+
+	if (wheel.deltaY > 0.0f)
+		zoom *= zoomFactor;
+	else
+		zoom /= zoomFactor;
+
+	zoom = juce::jlimit(0.05f, 100.0f, zoom);
+
+	// keep sample under cursor fixed
+	float sampleAtMouse = screenToSample(e.position.x);
+	offset = (sampleAtMouse * getWidth() / (zoom * sampler->getSampleLength())) - e.position.x;
+
+	repaint();
+}
+
 void SampleEditor::resized()
 {
 }
