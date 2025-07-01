@@ -36,9 +36,8 @@ public:
     void mouseWheelMove(const juce::MouseEvent& e,
         const juce::MouseWheelDetails& wheel) override;
 
-    // helpers =================================================================
-    float sampleToScreen(float sampleIndex) const;           // samples ➜ px
-    float screenToSample(float screenX) const;		   // px ➜ samples
+    // helpers =================================================================    
+    float screenToSample(float screenX) const;		   // px -> samples
 private:
     Sampler* sampler = nullptr;
     float samplePosX = 0;

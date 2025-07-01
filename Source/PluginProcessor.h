@@ -91,7 +91,7 @@ public:
     juce::MidiKeyboardState state;
     ControllerMappings mappings;
     std::stack<Event*> events;
-    Sequencer* sequencer = nullptr;
+    std::unique_ptr<Sequencer> sequencer = nullptr;
 
     AudioRecorder recorder;
     bool isRecording = false;
@@ -106,7 +106,7 @@ public:
 private:
     juce::File currentFile;
     float envValue = 0;
-    juce::AudioSampleBuffer* tempBuffer = nullptr;
+    std::unique_ptr<juce::AudioSampleBuffer> tempBuffer = nullptr;
     SamAudioProcessorEditor* editor = nullptr;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamAudioProcessor)

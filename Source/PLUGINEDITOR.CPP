@@ -478,7 +478,7 @@ void SamAudioProcessorEditor::timerCallback()
 	cutoffSlider->setValue(audioProcessor.cutoff);
 	resoSlider->setValue(audioProcessor.resonance);
 	amtSlider->setValue(audioProcessor.amount);
-	vuMeter->magnitude = audioProcessor.magnitude;
+	vuMeter->setMagnitude(audioProcessor.magnitude);;
 	repaint();
 
 }

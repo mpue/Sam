@@ -15,7 +15,7 @@
 //==============================================================================
 /*
 */
-class VUMeter  : public juce::Component
+class VUMeter  : public juce::Component, public juce::Timer
 {
 public:
     VUMeter();
@@ -23,7 +23,12 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
-    float magnitude = 0;
+    void setMagnitude(float newMagnitude);
+    void timerCallback() override;
+
 private:
+    float targetMagnitude = 0;
+    float currentMagnitude = 0;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VUMeter)
 };

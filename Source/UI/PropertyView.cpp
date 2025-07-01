@@ -53,14 +53,14 @@ PropertyView::PropertyView (Sampler* sampler) : TimeSliceThread("PropertyWatcher
     setSize(getParentWidth(), getParentHeight());
     
 
-    filter = new WildcardFileFilter("*.wav;*.aif;*.aiff;*.mp3;*.sam","*","*");
-    directoryContents = new DirectoryContentsList(filter,*this);
+    filter = std::make_unique<WildcardFileFilter>("*.wav;*.aif;*.aiff;*.mp3;*.sam","*","*");
+    directoryContents = std::make_unique<DirectoryContentsList>(filter.get(), *this);
     directoryContents->setIgnoresHiddenFiles(false);
     File initialDir = File::getSpecialLocation(File::userHomeDirectory);
-    FileBrowserModel* model = new FileBrowserModel(directoryContents, initialDir);
-    browser  = new ExtendedFileBrowser(File::getSpecialLocation(File::userHomeDirectory),filter,model, sampler);
-    directoryContents->addChangeListener(browser);
-    addAndMakeVisible(browser);
+    model = std::make_unique<FileBrowserModel>(directoryContents.get(), initialDir);
+    browser = std::make_unique<ExtendedFileBrowser>(File::getSpecialLocation(File::userHomeDirectory),filter.get(), model.get(), sampler);
+    directoryContents->addChangeListener(browser.get());
+    addAndMakeVisible(browser.get());
     startThread();
     browser->resized();
     //[/Constructor]
@@ -75,10 +75,12 @@ PropertyView::~PropertyView()
 
     //[Destructor]. You can add your own custom destruction code here..
     removeTimeSliceClient(this);
-    delete browser;
+    filter = nullptr;
+    model = nullptr;
+    browser = nullptr;
     stopThread(100);
-    delete directoryContents;
-    delete filter;
+    directoryContents = nullptr;
+    
     //[/Destructor]
 }
 
@@ -111,7 +113,7 @@ int PropertyView::useTimeSlice() {
 }
 
 ExtendedFileBrowser* PropertyView::getBrowser() {
-    return browser;
+    return browser.get();
 }
 
 //[/MiscUserCode]

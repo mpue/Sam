@@ -53,15 +53,14 @@ public:
 
     void paint (juce::Graphics& g) override;
     void resized() override;
-    ExtendedFileBrowser* browser = nullptr;
+    std::unique_ptr<ExtendedFileBrowser> browser = nullptr;
 
 private:
     //[UserVariables]   -- You can add your own custom variables in this section.
-
-    juce::PropertyPanel* propertyPanel = nullptr;
-    juce::ScopedPointer<juce::TextEditor> descriptionEditor;
-    juce::DirectoryContentsList* directoryContents = nullptr;
-    juce::WildcardFileFilter* filter = nullptr;
+        
+    std::unique_ptr <juce::DirectoryContentsList> directoryContents = nullptr;
+    std::unique_ptr <juce::WildcardFileFilter> filter = nullptr;
+    std::unique_ptr<FileBrowserModel> model = nullptr;
     //[/UserVariables]
 
     //==============================================================================

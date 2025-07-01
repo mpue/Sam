@@ -27,37 +27,41 @@ SequenceEditor::SequenceEditor(SamAudioProcessor* p, Sequencer* s)
 
 	this->sequencer = s;
 
-	addAndMakeVisible(playButton = new TextButton("Play"));
+	playButton = std::make_unique<TextButton>("Play");
 	playButton->setButtonText(TRANS("Play"));
 	playButton->addListener(this);
+	addAndMakeVisible(playButton.get());
 
 	playButton->setBounds(10, 10, 150, 24);
 
-	addAndMakeVisible(recordButton = new TextButton("Record"));
+	recordButton = std::make_unique<TextButton>("Record");
 	recordButton->setButtonText(TRANS("Record"));
 	recordButton->addListener(this);
+	addAndMakeVisible(recordButton.get());
 
 	recordButton->setBounds(170, 10, 150, 24);
 
-	addAndMakeVisible(clearButton = new TextButton("Clear"));
+	clearButton = std::make_unique<TextButton>("Clear");
 	clearButton->setButtonText(TRANS("Clear"));
 	clearButton->addListener(this);
+	addAndMakeVisible(clearButton.get());
 
 	clearButton->setBounds(330, 10, 150, 24);
 
-	addAndMakeVisible(lengthSlider = new Slider("lengthSlider"));
+	lengthSlider = std::make_unique<Slider>("Length");
 	lengthSlider->setRange(1, 64, 1);
 	lengthSlider->setSliderStyle(Slider::LinearHorizontal);
 	lengthSlider->setTextBoxStyle(Slider::TextBoxLeft, false, 80, 20);
 	lengthSlider->addListener(this);
 	lengthSlider->setBounds(500, 10, 150, 24);
+	addAndMakeVisible(lengthSlider.get());
 
 	setSize(800, 768);
 
-	content = new SequencePanel(sequencer);
+	content = std::make_unique<SequencePanel>(sequencer);
 
-	view = new Viewport();
-	view->setViewedComponent(content);
+	view = std::make_unique<Viewport>();
+	view->setViewedComponent(content.get());
 
 	setSize(gridWidth * cellSize, gridHeight * cellSize + 100);
 	setBounds(0, 0, gridWidth * cellSize, gridHeight * cellSize + 100);
@@ -74,11 +78,11 @@ SequenceEditor::SequenceEditor(SamAudioProcessor* p, Sequencer* s)
 
 	selectedCol = 0;
 	selectedRow = 0;
-	addAndMakeVisible(view);
+	addAndMakeVisible(view.get());
 
 	setWantsKeyboardFocus(true);
 	setInterceptsMouseClicks(true, true);
-	addMouseListener(content, true);
+	addMouseListener(content.get(), true);
 
 }
 
@@ -88,7 +92,10 @@ SequenceEditor::~SequenceEditor()
 	recordButton = nullptr;
 	clearButton = nullptr;
 	lengthSlider = nullptr;
-	delete view;
+	view = nullptr;
+	content = nullptr;
+	sequencer = nullptr;
+
 }
 
 //==============================================================================
@@ -109,22 +116,22 @@ void SequenceEditor::resized()
 void SequenceEditor::buttonClicked(Button* buttonThatWasClicked)
 {
 
-	if (buttonThatWasClicked == playButton)
+	if (buttonThatWasClicked == playButton.get())
 	{
 		sequencer->setRunning(true);
 
 	}
-	else if (buttonThatWasClicked == recordButton)
+	else if (buttonThatWasClicked == recordButton.get())
 	{
 		sequencer->setRunning(false);
 	}
-	else if (buttonThatWasClicked == clearButton) {
+	else if (buttonThatWasClicked == clearButton.get()) {
 		clearSequence();
 	}
 }
 
 void SequenceEditor::sliderValueChanged(juce::Slider* slider) {
-	if (slider == lengthSlider) {
+	if (slider == lengthSlider.get()) {
 		gridWidth = slider->getValue();
 		repaint();
 	}

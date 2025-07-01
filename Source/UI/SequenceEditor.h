@@ -104,13 +104,13 @@ private:
     static bool showVelocity;
     static bool optionPressed;
 
-    juce::ScopedPointer<juce::TextButton> playButton;
-    juce::ScopedPointer<juce::TextButton> recordButton;
-    juce::ScopedPointer<juce::TextButton> clearButton;
-    juce::ScopedPointer<juce::Slider> lengthSlider;
+    std::unique_ptr<juce::TextButton> playButton;
+    std::unique_ptr<juce::TextButton> recordButton;
+    std::unique_ptr<juce::TextButton> clearButton;
+    std::unique_ptr<juce::Slider> lengthSlider;
     
-    juce::Viewport* view = nullptr;
-    SequencePanel* content = nullptr;
+    std::unique_ptr <juce::Viewport> view = nullptr;
+    std::unique_ptr <SequencePanel> content = nullptr;
     Sequencer* sequencer;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SequenceEditor)

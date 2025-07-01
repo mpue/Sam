@@ -23,7 +23,7 @@ SamAudioProcessor::SamAudioProcessor()
 	fmtMgr = std::make_unique<juce::AudioFormatManager>();
 	fmtMgr->registerBasicFormats();
 	mappings = ControllerMappings();
-	sequencer = new Sequencer();
+	sequencer = std::make_unique<Sequencer>();
 	state.addListener(this);
 }
 
@@ -36,11 +36,11 @@ SamAudioProcessor::~SamAudioProcessor()
 	defaultSampler = nullptr;
 	lpfLeftStage1 = nullptr;
 	lpfRightStage1 = nullptr;
-	delete tempBuffer;
+	tempBuffer = nullptr;
 	fmtMgr = nullptr;
 	interpolatorLeft = nullptr;
 	interpolatorRight = nullptr;
-	delete sequencer;
+	sequencer = nullptr;
 }
 
 //==============================================================================
@@ -153,7 +153,7 @@ void SamAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 		// samplers[i] = nullptr;
 		voices[i] = false;
 	}
-	tempBuffer = new juce::AudioSampleBuffer(2, samplesPerBlock);
+	tempBuffer = std::make_unique<juce::AudioSampleBuffer>(2, samplesPerBlock);
 
 	interpolatorLeft = std::make_unique<CatmullRomInterpolator>();
 	interpolatorRight = std::make_unique<CatmullRomInterpolator>();

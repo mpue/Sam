@@ -72,7 +72,7 @@ public:
     void loadState();
     void buttonClicked(Button* button) override;
     juce::TableListBox* getTable() {
-        return table;
+        return table.get();
     };
     
     FileBrowserModel* getModel() {
@@ -88,19 +88,17 @@ public:
     Sampler* getSampler() {
         return sampler;
     }
-
-
     
     FileBrowserModel* model = nullptr;
 private:
     const juce::File& initialDir;
     const juce::WildcardFileFilter* filter;
     juce::File selectedFile;
-    juce::TableListBox* table = nullptr;
-    juce::Viewport* view = nullptr;
+    std::unique_ptr<juce::TableListBox> table = nullptr;
+    std::unique_ptr <juce::Viewport> view = nullptr;
     Sampler* sampler;
     bool playing = false;
-    std::vector<Button*> driveButtons;
+    std::vector<std::unique_ptr<Button>> driveButtons;
 
 };
 

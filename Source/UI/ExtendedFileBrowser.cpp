@@ -29,7 +29,7 @@ using juce::TextButton;
 ExtendedFileBrowser::ExtendedFileBrowser(const File& initialFileOrDirectory, const WildcardFileFilter* fileFilter, FileBrowserModel* model, Sampler* sampler) : initialDir(initialFileOrDirectory) {
 
 	// addMouseListener(this, true);
-	table = new TableListBox();
+	table = std::make_unique<TableListBox>();
 	
 	table->getHeader().addColumn("Name", 1, 300);
 	table->getHeader().addColumn("Size", 2, 100);
@@ -37,9 +37,9 @@ ExtendedFileBrowser::ExtendedFileBrowser(const File& initialFileOrDirectory, con
 	table->getHeader().setStretchToFitActive(true);
 	table->setModel(model);
 	this->model = model;
-	view = new Viewport();	
-	view->setViewedComponent(table);
-	addAndMakeVisible(view);
+	view = std::make_unique<Viewport>();	
+	view->setViewedComponent(table.get());
+	addAndMakeVisible(view.get());
 	
 
 	this->sampler = sampler;
@@ -56,12 +56,12 @@ ExtendedFileBrowser::ExtendedFileBrowser(const File& initialFileOrDirectory, con
 
 	for (int i = 0; i < drives.size(); i++) {
 		juce::File f = drives.getReference(i);
-		TextButton* button = new TextButton(f.getFileName());
+		std::unique_ptr<TextButton>button = std::make_unique<TextButton>(f.getFileName());
+		button->addListener(this);
 		button->setSize(30, 20);
 		button->setTopLeftPosition(i * 35, 0);
-		driveButtons.push_back(button);
-		addAndMakeVisible(button);
-		button->addListener(this);
+		addAndMakeVisible(button.get());
+		driveButtons.push_back(std::move(button));
 	}
 
 	repaint();
@@ -69,15 +69,15 @@ ExtendedFileBrowser::ExtendedFileBrowser(const File& initialFileOrDirectory, con
 
 ExtendedFileBrowser::~ExtendedFileBrowser() {
 	saveState();
-	delete table;
-	delete view;
-	delete model;
+	table = nullptr;
+	view = nullptr;
+	
 	if (sampler != nullptr) {
 		sampler->stop();
 		delete sampler;
 	}
 	for (int i = 0; i < driveButtons.size(); i++) {
-		delete driveButtons.at(i);
+		driveButtons.at(i) = nullptr;
 	}
 }
 
