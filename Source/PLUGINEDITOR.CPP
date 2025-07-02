@@ -17,6 +17,11 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	audioProcessor.state.addListener(this);
 	addAndMakeVisible(keyboard.get());
 
+	for (int i = 60; i < 100; i++) {
+		zones.push_back({ i, i, 1, 127,i }); // C4–C5, mittlere Velocity
+	}
+
+
 	loopButton = std::make_unique<juce::ToggleButton>("Loop");
 	loopButton->setSize(100, 20);
 	loopButton->setTooltip("Toggle loop for the current sample");
@@ -191,6 +196,9 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	fxViewButton->addListener(this);	
 	sequencerViewButton->addListener(this);
 	mainViewButton->addListener(this);
+	mapViewButton->addListener(this);
+	fxViewButton->addListener(this);
+
 
 	// driveSlider->addListener(this);
 	addMouseListener(this,true);
@@ -241,7 +249,18 @@ void SamAudioProcessorEditor::paint(juce::Graphics& g)
 	/**/
 	// (Our component is opaque, so we must completely fill the background with a solid colour)
 	g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
-	g.drawImageAt(juce::ImageCache::getFromMemory(BinaryData::sam2_png, BinaryData::sam2_pngSize), 0, 0);
+	if (currentMode == UIMode::Sequencer) {
+	}
+	else if (currentMode == UIMode::Mod) {
+	}
+	else if (currentMode == UIMode::FX) {
+	}
+	else if (currentMode == UIMode::Map) {
+		g.drawImageAt(juce::ImageCache::getFromMemory(BinaryData::sam2_mappings_png, BinaryData::sam2_mappings_pngSize), 0, 0);
+	}
+	else {
+		g.drawImageAt(juce::ImageCache::getFromMemory(BinaryData::sam2_png, BinaryData::sam2_pngSize), 0, 0);
+	}
 
 	g.setFont(15.0f);
 
@@ -432,11 +451,66 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 	else if (button == sequencerViewButton.get()) {
 		// sequenceEditor->setVisible(true);
 		sampleEditor->setVisible(false);
+		currentMode = UIMode::Sequencer;
+		repaint();
 	}
 	else if (button == mainViewButton.get()) {
-		//sequenceEditor->setVisible(false);
+		//sequenceEditor->setVisible(false);		
 		sampleEditor->setVisible(true);
+		currentMode = UIMode::Main;
+		ampEnvelope->setVisible(true);
+		filterEnvelope->setVisible(true);
+		ampEnvelope->setVisible(true);
+		filterEnvelope->setVisible(true);
+		cutoffLabel->setVisible(true);
+		cutoffSlider->setVisible(true);
+		amtLabel->setVisible(true);
+		amtSlider->setVisible(true);
+		resoLabel->setVisible(true);
+		resoSlider->setVisible(true);
+		vuMeter->setVisible(true);
+		keyboard->setSize(750, 100);
+		keyboard->setTopLeftPosition(200, 880);
+		mappingEditor->setVisible(false);
+		repaint();
+	}
+	else if (button == modViewButton.get()) {
+		currentMode = UIMode::Mod;
+		sampleEditor->setVisible(false);
+		repaint();
+	}
+	else if (button == fxViewButton.get()) {
+		currentMode = UIMode::FX;
+		sampleEditor->setVisible(false);
+		repaint();
+	}
+	else if (button == mapViewButton.get()) {
+		currentMode = UIMode::Map;		
+		repaint();
+		ampEnvelope->setVisible(false);
+		filterEnvelope->setVisible(false);
+		ampEnvelope->setVisible(false);
+		filterEnvelope->setVisible(false);
+		cutoffLabel->setVisible(false);
+		cutoffSlider->setVisible(false);
+		amtLabel->setVisible(false);
+		amtSlider->setVisible(false);
+		resoLabel->setVisible(false);
+		resoSlider->setVisible(false);
+		vuMeter->setVisible(false);
+		keyboard->setSize(920, 100);
+		keyboard->setTopLeftPosition(40, 880);
 
+		if (mappingEditor == nullptr) {
+			mappingEditor = std::make_unique<KeyboardMappingEditor>(*keyboard, zones);
+			addAndMakeVisible(mappingEditor.get());		
+			mappingEditor->toFront(true);
+			mappingEditor->repaint();				
+		}
+
+		mappingEditor->setSize(keyboard->getWidth(), 250);
+		mappingEditor->setTopLeftPosition(40, 620);
+		mappingEditor->setVisible(true);
 	}
 	else if (button == recordButton.get())
 	{

@@ -25,6 +25,8 @@
             file="images/oscillator_square_48.png"/>
       <FILE id="nE09Q4" name="sam.png" compile="0" resource="1" file="images/sam.png"/>
       <FILE id="YDS0mB" name="sam2.png" compile="0" resource="1" file="images/sam2.png"/>
+      <FILE id="KgDbbt" name="sam2_mappings.png" compile="0" resource="1"
+            file="images/sam2_mappings.png"/>
       <FILE id="WZhQHt" name="vintage_vu.png" compile="0" resource="1" file="images/vintage_vu.png"/>
     </GROUP>
     <GROUP id="{369CBED0-7B33-D04B-305B-90049F8C1F26}" name="Source">
@@ -56,16 +58,14 @@
               file="Source/UI/GraphicalEnvelope.cpp"/>
         <FILE id="FFg233" name="GraphicalEnvelope.h" compile="0" resource="0"
               file="Source/UI/GraphicalEnvelope.h"/>
+        <FILE id="oXs17s" name="KeyboardMappingEditor.h" compile="0" resource="0"
+              file="Source/UI/KeyboardMappingEditor.h"/>
         <FILE id="aVnxQ8" name="PropertyView.cpp" compile="1" resource="0"
               file="Source/UI/PropertyView.cpp"/>
         <FILE id="UaqZBS" name="PropertyView.h" compile="0" resource="0" file="Source/UI/PropertyView.h"/>
         <FILE id="j2mqDB" name="SampleEditor.cpp" compile="1" resource="0"
               file="Source/UI/SampleEditor.cpp"/>
         <FILE id="u7XaLU" name="SampleEditor.h" compile="0" resource="0" file="Source/UI/SampleEditor.h"/>
-        <FILE id="grC0uN" name="SequenceEditor.cpp" compile="1" resource="0"
-              file="Source/UI/SequenceEditor.cpp"/>
-        <FILE id="Y154sj" name="SequenceEditor.h" compile="0" resource="0"
-              file="Source/UI/SequenceEditor.h"/>
         <FILE id="NMWYJj" name="TrioLookAndFeel.cpp" compile="1" resource="0"
               file="Source/UI/TrioLookAndFeel.cpp"/>
         <FILE id="psbccP" name="TrioLookAndFeel.h" compile="0" resource="0"

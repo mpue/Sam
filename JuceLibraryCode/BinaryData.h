@@ -50,11 +50,14 @@ namespace BinaryData
     extern const char*   sam2_png;
     const int            sam2_pngSize = 1599347;
 
+    extern const char*   sam2_mappings_png;
+    const int            sam2_mappings_pngSize = 836279;
+
     extern const char*   vintage_vu_png;
     const int            vintage_vu_pngSize = 30329;
 
     // Number of elements in the namedResourceList and originalFileNames arrays.
-    const int namedResourceListSize = 15;
+    const int namedResourceListSize = 16;
 
     // Points to the start of a list of resource names.
     extern const char* namedResourceList[];

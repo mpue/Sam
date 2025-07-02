@@ -10,6 +10,7 @@
 #include "UI/PropertyView.h"
 #include "UI/SampleEditor.h"
 #include "UI/CustomKeyboard.h"
+#include "UI/KeyboardMappingEditor.h"
 
 //==============================================================================
 
@@ -27,6 +28,10 @@ public:
     SamAudioProcessorEditor (SamAudioProcessor&);
     ~SamAudioProcessorEditor() override;
 
+    enum class UIMode { Main, Map, FX, Mod, Sequencer };
+
+    
+
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
@@ -43,6 +48,7 @@ public:
     void mouseDown(const MouseEvent& event) override;
 
     std::unique_ptr<CustomKeyboard> keyboard;
+    std::unique_ptr <KeyboardMappingEditor> mappingEditor = nullptr;
     std::unique_ptr<EnvelopePanel> ampEnvelope = nullptr;
     std::unique_ptr<EnvelopePanel> filterEnvelope = nullptr;
     std::unique_ptr <juce::Button> loadButton = nullptr;
@@ -71,6 +77,9 @@ public:
     std::unique_ptr <juce::Button> modViewButton = nullptr;
     std::unique_ptr <juce::Button> sequencerViewButton = nullptr;
     std::unique_ptr <juce::Button> recordButton = nullptr;
+
+    UIMode currentMode = UIMode::Main;
+    std::vector<SampleZone> zones;
 
 private:
 
