@@ -1,11 +1,3 @@
-/*
-  ==============================================================================
-
-	This file contains the basic framework code for a JUCE plugin editor.
-
-  ==============================================================================
-*/
-
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
@@ -13,12 +5,8 @@
 SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	: AudioProcessorEditor(&p), audioProcessor(p)
 {
-	// Make sure that before the constructor has finished, you've set the
-	// editor's size to whatever you need it to be.
-
 	setLookAndFeel(&tlf);
 	setSize(1024, 1024);
-
 
 	keyboard = std::make_unique<CustomKeyboard>(audioProcessor.state, juce::MidiKeyboardComponent::Orientation::horizontalKeyboard);
 	keyboard->setSize(750, 100);
@@ -28,12 +16,21 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 
 	audioProcessor.state.addListener(this);
 	addAndMakeVisible(keyboard.get());
+
 	loopButton = std::make_unique<juce::ToggleButton>("Loop");
 	loopButton->setSize(100, 20);
 	loopButton->setTooltip("Toggle loop for the current sample");
 	loopButton->setAlwaysOnTop(true);
-	loopButton->setTopLeftPosition(512, 273);
+	loopButton->setTopLeftPosition(462, 273);
 	addAndMakeVisible(loopButton.get());
+
+	reverseButton = std::make_unique<juce::ToggleButton>("Reverse");
+	reverseButton->setSize(100, 20);
+	reverseButton->setTooltip("Toggle reverse playback for the current sample");
+	reverseButton->setAlwaysOnTop(true);
+	reverseButton->setTopLeftPosition(540, 273);
+	addAndMakeVisible(reverseButton.get());
+
 
 	recordButton = std::make_unique<juce::TextButton>("Record");
 	recordButton->setSize(70, 20);
@@ -113,8 +110,8 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	addAndMakeVisible(noteLabel.get());
 
 	cutoffSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::RotaryVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox);
-	cutoffSlider->setSize(64, 64);
-	cutoffSlider->setTopLeftPosition(705, 520);
+	cutoffSlider->setSize(48, 48);
+	cutoffSlider->setTopLeftPosition(715, 530);
 	cutoffSlider->setRange(0, 22000);
 	cutoffSlider->setName("Cutoff");
 	addAndMakeVisible(cutoffSlider.get());
@@ -125,8 +122,8 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	addAndMakeVisible(cutoffLabel.get());
 
 	resoSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::RotaryVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox);
-	resoSlider->setSize(64, 64);
-	resoSlider->setTopLeftPosition(805, 520);
+	resoSlider->setSize(48, 48);
+	resoSlider->setTopLeftPosition(810, 530);
 	resoSlider->setRange(0, 5);
 	resoSlider->setName("Resonance");
 	addAndMakeVisible(resoSlider.get());
@@ -137,8 +134,8 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	addAndMakeVisible(resoLabel.get());
 
 	amtSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::RotaryVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox);
-	amtSlider->setSize(64, 64);
-	amtSlider->setTopLeftPosition(915, 520);
+	amtSlider->setSize(48, 48);
+	amtSlider->setTopLeftPosition(925, 530);
 	amtSlider->setRange(0, 1);
 	amtSlider->setName("Amount");
 	addAndMakeVisible(amtSlider.get());
@@ -157,11 +154,6 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	sampleEditor->setTopLeftPosition(24, 134);
 	sampleEditor->setSize(850, 124);
 	addAndMakeVisible(sampleEditor.get());
-
-	//sequenceEditor = std::make_unique<SequenceEditor>(&audioProcessor, audioProcessor.sequencer);
-	//sequenceEditor->setTopLeftPosition(34, 34);
-	//sequenceEditor->setSize(1190, 254);
-	//addChildComponent(sequenceEditor.get());
 
 	propertyViewLeft = std::make_unique<PropertyView>(nullptr);
 	propertyViewLeft->setTopLeftPosition(20, 310);
@@ -190,6 +182,7 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	saveSetButton->addListener(this);
 	newSetButton->addListener(this);
 	loopButton->addListener(this);
+	reverseButton->addListener(this);
 	cutoffSlider->addListener(this);
 	resoSlider->addListener(this);
 	amtSlider->addListener(this);
@@ -220,6 +213,7 @@ SamAudioProcessorEditor::~SamAudioProcessorEditor()
 	newSetButton = nullptr;
 	noteLabel = nullptr;
 	loopButton = nullptr;
+	reverseButton = nullptr;
 	cutoffSlider = nullptr;
 	resoSlider = nullptr;
 	amtSlider = nullptr;
@@ -239,7 +233,6 @@ SamAudioProcessorEditor::~SamAudioProcessorEditor()
 	modViewButton = nullptr;
 	fxViewButton = nullptr;
 	mapViewButton = nullptr;
-	// sequenceEditor = nullptr;
 }
 
 //==============================================================================
@@ -389,6 +382,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 					juce::ValueTree file = juce::ValueTree("Sample");
 					file.setProperty("note", i, nullptr);
 					file.setProperty("loop", audioProcessor.samplers[i]->isLoop(), nullptr);
+					file.setProperty("reverse", audioProcessor.samplers[i]->isReverse(), nullptr);
 					file.setProperty("sample", audioProcessor.samplers[i]->getSampleLocation(), nullptr);
 					file.setProperty("amp_attack", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().attack, nullptr);
 					file.setProperty("amp_decay", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().decay, nullptr);
@@ -427,6 +421,12 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 	{
 		if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
 			audioProcessor.samplers[audioProcessor.currentSampleIndex]->setLoop(loopButton->getToggleState());
+		}
+	}
+	else if (button == reverseButton.get())
+	{
+		if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
+			audioProcessor.samplers[audioProcessor.currentSampleIndex]->setReverse(reverseButton->getToggleState());
 		}
 	}
 	else if (button == sequencerViewButton.get()) {
@@ -539,14 +539,11 @@ void SamAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
 			audioProcessor.samplers[audioProcessor.currentSampleIndex]->setPitch(pitchSlider->getValue());
 		}
 	}
-
 	if (audioProcessor.lpfLeftStage1 != nullptr)
 	{
 		audioProcessor.lpfLeftStage1->coefficients(audioProcessor.sampleRate, audioProcessor.cutoff, audioProcessor.resonance);
 	}
 }
-
-
 
 void SamAudioProcessorEditor::mouseDown(const MouseEvent& event)
 {

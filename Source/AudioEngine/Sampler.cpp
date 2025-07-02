@@ -67,10 +67,15 @@ float Sampler::process() {
 
 void Sampler::nextSample() {
 	if (!isDone()) {
-		playbackPosition += pitch;
+		playbackPosition += reverse ? -pitch : pitch;
 
-		if (isLoop() && playbackPosition >= endPosition) {
-			playbackPosition = startPosition;
+		if (isLoop()) {
+			if (reverse && playbackPosition <= startPosition) {
+				playbackPosition = endPosition;
+			}
+			else if (!reverse && playbackPosition >= endPosition) {
+				playbackPosition = startPosition;
+			}
 		}
 	}
 
@@ -78,7 +83,6 @@ void Sampler::nextSample() {
 		playing = false;
 	}
 }
-
 void Sampler::nextBlock()
 {
 
@@ -101,26 +105,35 @@ float Sampler::getCurrentSample(int channel) {
 	auto* in = sampleBuffer->getReadPointer(channel);
 	int total = sampleBuffer->getNumSamples();
 
-	if (playbackPosition >= total - 1)
+	if (playbackPosition < 0 || playbackPosition >= total - 1)
 		return 0.0f;
 
-	// Lineare Interpolation
 	int index = static_cast<int>(playbackPosition);
 	float frac = static_cast<float>(playbackPosition - index);
 
 	float sample1 = in[index];
 	float sample2 = (index + 1 < total) ? in[index + 1] : 0.0f;
 
-	float out = (sample1 + frac * (sample2 - sample1)) * volume;
+	float out;
+
+	if (reverse) {
+		// Umgekehrte Interpolation
+		out = (sample2 + (1.0f - frac) * (sample1 - sample2)) * volume;
+	}
+	else {
+		// Vorwärts
+		out = (sample1 + frac * (sample2 - sample1)) * volume;
+	}
 
 	if (channel == 0) {
 		lpfLeftStage1->processMono(0, &out, 1);
-	}	
+	}
 	else if (channel == 1) {
 		lpfRightStage1->processMono(0, &out, 1);
-	}	
+	}
 	return out;
 }
+
 
 
 float Sampler::getSampleAt(int channel, long pos) {
@@ -246,6 +259,11 @@ bool Sampler::isLoop() {
 
 void Sampler::setVolume(float volume) {
 	this->volume = volume;
+}
+
+float Sampler::getVolume()
+{
+	return volume;
 }
 
 AudioSampleBuffer* Sampler::getSampleBuffer() {

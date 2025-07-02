@@ -1,11 +1,3 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin editor.
-
-  ==============================================================================
-*/
-
 #pragma once
 
 #include <JuceHeader.h>
@@ -17,11 +9,10 @@
 #include "UI/VUMeter.h"
 #include "UI/PropertyView.h"
 #include "UI/SampleEditor.h"
-#include "UI/SequenceEditor.h"
 #include "UI/CustomKeyboard.h"
+
 //==============================================================================
-/**
-*/
+
 class SamAudioProcessorEditor  : public juce::AudioProcessorEditor, 
                                  public juce::MidiKeyboardStateListener, 
                                  public juce::Button::Listener, 
@@ -50,6 +41,7 @@ public:
     void changeListenerCallback(ChangeBroadcaster* source) override;
     void sliderValueChanged(juce::Slider* slider) override;
     void mouseDown(const MouseEvent& event) override;
+
     std::unique_ptr<CustomKeyboard> keyboard;
     std::unique_ptr<EnvelopePanel> ampEnvelope = nullptr;
     std::unique_ptr<EnvelopePanel> filterEnvelope = nullptr;
@@ -59,6 +51,7 @@ public:
     std::unique_ptr <juce::Button> newSetButton = nullptr;
     std::unique_ptr <juce::Label> noteLabel = nullptr;
     std::unique_ptr <juce::ToggleButton> loopButton = nullptr;
+    std::unique_ptr <juce::ToggleButton> reverseButton = nullptr;
     std::unique_ptr <juce::Slider> cutoffSlider = nullptr;
     std::unique_ptr <juce::Slider> resoSlider = nullptr;
     std::unique_ptr <juce::Slider> amtSlider = nullptr;
@@ -70,8 +63,7 @@ public:
     std::unique_ptr <VUMeter> vuMeter = nullptr;
     std::unique_ptr <PropertyView> propertyViewLeft = nullptr;
     std::unique_ptr <PropertyView> propertyViewRight = nullptr;
-    std::unique_ptr <SampleEditor> sampleEditor = nullptr;
-    // std::unique_ptr <SequenceEditor> sequenceEditor = nullptr;
+    std::unique_ptr <SampleEditor> sampleEditor = nullptr;    
     std::unique_ptr <juce::Slider> pitchSlider = nullptr;
     std::unique_ptr <juce::Button> mainViewButton = nullptr;    
     std::unique_ptr <juce::Button> mapViewButton = nullptr;
@@ -79,9 +71,9 @@ public:
     std::unique_ptr <juce::Button> modViewButton = nullptr;
     std::unique_ptr <juce::Button> sequencerViewButton = nullptr;
     std::unique_ptr <juce::Button> recordButton = nullptr;
+
 private:
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
+
     CustomLookAndFeel tlf;
     SamAudioProcessor& audioProcessor;
 

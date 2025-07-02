@@ -40,18 +40,11 @@ ExtendedFileBrowser::ExtendedFileBrowser(const File& initialFileOrDirectory, con
 	view = std::make_unique<Viewport>();	
 	view->setViewedComponent(table.get());
 	addAndMakeVisible(view.get());
-	
-
 	this->sampler = sampler;
-
 	table->addMouseListener(this, true);
-
 	loadState();
-
 	model->update();
-
 	juce::Array<juce::File> drives;
-
 	File::findFileSystemRoots(drives);
 
 	for (int i = 0; i < drives.size(); i++) {

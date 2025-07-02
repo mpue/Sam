@@ -38,15 +38,17 @@ public:
     void rewindSamples(int num);
     bool isLoop();
     void setVolume(float volume);
-    float getVolume() {
-        return volume;
-    }
+    float getVolume();
     juce::AudioSampleBuffer* getSampleBuffer();
     bool hasSample();
     void nextSample();
     void nextBlock();
 	virtual float process() override;
     float getCurrentSample(int channel);
+    
+    void setReverse(bool shouldReverse) { reverse = shouldReverse; }
+    bool isReverse() const { return reverse; }
+
     long getCurrentPosition() {
         return currentSample;
     }
@@ -137,11 +139,10 @@ private:
     long sampleLength = 0;
     
     bool loop = false;
-    bool loaded = false;
-    
-    bool playing = false;
-    
+    bool loaded = false;    
+    bool playing = false;    
     bool dirty = false;
+    bool reverse = false; // true = reverse playback
     
     float* tempBufferLeft = nullptr;
     float* tempBufferRight = nullptr;

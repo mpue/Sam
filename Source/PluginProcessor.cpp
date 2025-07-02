@@ -483,6 +483,7 @@ void SamAudioProcessor::loadFile(juce::File file)
 		s->setStartPosition(v.getChild(i).getProperty("loopStart").toString().getLargeIntValue());
 		s->setEndPosition(v.getChild(i).getProperty("loopEnd").toString().getLargeIntValue());
 		s->setPitch(v.getChild(i).getProperty("pitch").toString().getFloatValue());
+		s->setReverse(v.getChild(i).getProperty("reverse").toString() == "true");
 
 		juce::ADSR::Parameters params;
 		params.attack = v.getChild(i).getProperty("amp_attack").toString().getFloatValue();
