@@ -80,26 +80,31 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	mainViewButton->setSize(140, 20);
 	mainViewButton->setTopLeftPosition(455, 320);
 	addAndMakeVisible(mainViewButton.get());
+	mainViewButton->setEnabled(false);
 
 	mapViewButton = std::make_unique<juce::TextButton>("Mapping");
 	mapViewButton->setSize(140, 20);
 	mapViewButton->setTopLeftPosition(455, 345);
 	addAndMakeVisible(mapViewButton.get());
+	mapViewButton->setEnabled(false);
 
 	sequencerViewButton = std::make_unique<juce::TextButton>("Sequencer");
 	sequencerViewButton->setSize(140, 20);
 	sequencerViewButton->setTopLeftPosition(455, 370);
 	addAndMakeVisible(sequencerViewButton.get());
+	sequencerViewButton->setEnabled(false);
 
 	modViewButton = std::make_unique<juce::TextButton>("Modulation");
 	modViewButton->setSize(140, 20);
 	modViewButton->setTopLeftPosition(455, 395);
 	addAndMakeVisible(modViewButton.get());
+	modViewButton->setEnabled(false);
 
 	fxViewButton = std::make_unique<juce::TextButton>("Effects");
 	fxViewButton->setSize(140, 20);
 	fxViewButton->setTopLeftPosition(455, 420);
 	addAndMakeVisible(fxViewButton.get());
+	fxViewButton->setEnabled(false);
 
 	pitchSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::LinearHorizontal, juce::Slider::TextEntryBoxPosition::TextBoxRight);
 	pitchSlider->setSize(200, 24);
