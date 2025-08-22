@@ -9,12 +9,14 @@ It offers an intuitive interface, deep MIDI integration, and flexible zone and e
 
 ---
 
-## ✨ Features
+## Features
 
-- 🎹 **MIDI Keyboard Integration**  
+
+- **Record from audio in**
+- **MIDI Keyboard Integration**  
   Trigger and play samples directly with any MIDI controller.
 
-- 🎛 **Envelopes & Modulation**  
+- **Envelopes & Modulation**  
   ADSR envelopes for volume, filter, and other parameters.
 
 - 🖥 **User-Friendly Interface**  
@@ -22,7 +24,7 @@ It offers an intuitive interface, deep MIDI integration, and flexible zone and e
   - Waveform display and editing
 ---
 
-## 🚀 Installation
+## Installation
 
 ### Requirements
 - **JUCE Framework**  
@@ -39,3 +41,7 @@ cd SAM
 ```
 
 Check out the release section for a binary, currently I provide only a Windows VST3
+
+## Important
+
+Use SAM as an audio effect and route the MIDI Input from your DAW to the SAM Track.
