@@ -17,6 +17,8 @@
 #include "Event.h"
 #include "AudioEngine/AudioRecorder.h"
 #include <stack>
+#include "UI/KeyboardMappingEditor.h"
+
 class SamAudioProcessorEditor;
 //==============================================================================
 /**
@@ -72,6 +74,8 @@ public:
     bool voices[128];
     int numVoices = 0;
 
+    void setKeyboardEditor(KeyboardMappingEditor* editor);
+
     std::unique_ptr<MultimodeFilter> lpfLeftStage1 = nullptr;
     std::unique_ptr<MultimodeFilter> lpfRightStage1 = nullptr;
 
@@ -102,7 +106,7 @@ public:
     bool initialized = false;
     bool loaded = false;
     std::unique_ptr<Sampler> samplers[128] = { nullptr };
-
+    KeyboardMappingEditor* keyEditor = nullptr;
 private:
     juce::File currentFile;
     float envValue = 0;

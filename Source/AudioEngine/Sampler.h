@@ -18,7 +18,8 @@
 class Sampler : public Oszillator {
 
 public:
-    
+
+    Sampler();
     Sampler(float sampleRate, int bufferSize);
     ~Sampler();
 

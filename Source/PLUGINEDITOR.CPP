@@ -17,11 +17,6 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	audioProcessor.state.addListener(this);
 	addAndMakeVisible(keyboard.get());
 
-	for (int i = 60; i < 100; i++) {
-		zones.push_back({ i, i, 1, 127,i }); // C4–C5, mittlere Velocity
-	}
-
-
 	loopButton = std::make_unique<juce::ToggleButton>("Loop");
 	loopButton->setSize(100, 20);
 	loopButton->setTooltip("Toggle loop for the current sample");
@@ -80,13 +75,13 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	mainViewButton->setSize(140, 20);
 	mainViewButton->setTopLeftPosition(455, 320);
 	addAndMakeVisible(mainViewButton.get());
-	mainViewButton->setEnabled(false);
+	mainViewButton->setEnabled(true);
 
 	mapViewButton = std::make_unique<juce::TextButton>("Mapping");
 	mapViewButton->setSize(140, 20);
 	mapViewButton->setTopLeftPosition(455, 345);
 	addAndMakeVisible(mapViewButton.get());
-	mapViewButton->setEnabled(false);
+	mapViewButton->setEnabled(true);
 
 	sequencerViewButton = std::make_unique<juce::TextButton>("Sequencer");
 	sequencerViewButton->setSize(140, 20);
@@ -328,8 +323,50 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 			ampEnvelope->repaint();			
 		}
 		else {
-			sampleEditor->setSampler(nullptr);
-			sampleEditor->repaint();
+			if (mappingEditor == nullptr) {
+				lock.exit();
+				return;
+			}
+			int note = mappingEditor->findZoneForNoteAndVelocity(midiNoteNumber, velocity);
+			if (note > 0) {
+				Sampler* sampler = zones[note].sampler.get();
+
+				noteLabel->setText("current : " + juce::String(midiNoteNumber), juce::NotificationType::dontSendNotification);
+
+				ampEnvelope->setEnvelope(sampler->getAmpEnvelope());
+
+				float a = sampler->getAmpEnvelope()->getParameters().attack;
+				float d = sampler->getAmpEnvelope()->getParameters().decay;
+				float s = sampler->getAmpEnvelope()->getParameters().sustain;
+				float r = sampler->getAmpEnvelope()->getParameters().release;
+
+				ampEnvelope->setADSR(a, d, s, r);
+
+				this->loopButton->setToggleState(sampler->isLoop(), juce::NotificationType::dontSendNotification);
+				pitchSlider->setValue(sampler->getPitchAsFloat());
+
+				if (sampler->hasSample()) {
+					sampleEditor->setSampler(sampler);
+				}
+				filterEnvelope->setEnvelope(sampler->getFilterEnvelope());
+
+				a = sampler->getFilterEnvelope()->getParameters().attack;
+				d = sampler->getFilterEnvelope()->getParameters().decay;
+				s = sampler->getFilterEnvelope()->getParameters().sustain;
+				r = sampler->getFilterEnvelope()->getParameters().release;
+
+				filterEnvelope->setADSR(a, d, s, r);
+
+				repaint();
+
+				sampleEditor->repaint();
+				ampEnvelope->repaint();
+			}
+			else {
+				sampleEditor->setSampler(nullptr);
+				sampleEditor->repaint();
+			}
+			
 		}
 		lock.exit();
 	};
@@ -343,6 +380,7 @@ void SamAudioProcessorEditor::handleNoteOff(juce::MidiKeyboardState* source, int
 	if (audioProcessor.samplers[midiNoteNumber] != nullptr) {
 		audioProcessor.samplers[midiNoteNumber]->stop();
 	}
+
 	if (audioProcessor.numVoices == 0) {
 		// stopTimer();
 
@@ -511,11 +549,20 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 			addAndMakeVisible(mappingEditor.get());		
 			mappingEditor->toFront(true);
 			mappingEditor->repaint();				
+
+			mappingEditor->setZoneAddedCallback([this](int index, const SampleZone& zone) {
+				onZoneAdded(index, zone);
+				});
+
+			mappingEditor->setZoneRemovedCallback([this](int index) {
+				onZoneRemoved(index);
+			});
 		}
 
 		mappingEditor->setSize(keyboard->getWidth(), 250);
 		mappingEditor->setTopLeftPosition(40, 620);
 		mappingEditor->setVisible(true);
+		audioProcessor.setKeyboardEditor(mappingEditor.get());
 	}
 	else if (button == recordButton.get())
 	{
@@ -547,6 +594,31 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 			recordButton->setButtonText("Record");
 		}
 	}
+}
+
+void SamAudioProcessorEditor::onZoneAdded(int index, const SampleZone& zone)
+{
+	juce::Logger::writeToLog("Zone added at index " + juce::String(index));
+
+	String userHome = File::getSpecialLocation(File::userHomeDirectory).getFullPathName();
+
+	juce::FileChooser chooser("Select sample to add", juce::File(userHome), "*");
+
+	if (chooser.browseForFileToOpen()) {
+
+		juce::File file = chooser.getResult();
+		zones[index].sampler = std::make_unique<Sampler>(audioProcessor.sampleRate, audioProcessor.bufferSize);		
+		zones[index].sampler->loadSample(file);
+		zones[index].sampler->setLoop(true);
+		zones[index].sampler->play();
+
+	}
+}
+
+void SamAudioProcessorEditor::onZoneRemoved(int index)
+{
+	juce::Logger::writeToLog("Zone removed from index " + juce::String(index));
+
 }
 
 void SamAudioProcessorEditor::timerCallback()

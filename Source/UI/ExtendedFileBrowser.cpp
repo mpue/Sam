@@ -9,7 +9,6 @@
 #include "ExtendedFileBrowser.h"
 #include "../JuceLibraryCode/JuceHeader.h"
 
-
 using juce::File;
 using juce::WildcardFileFilter;
 using juce::TableListBox;
@@ -26,153 +25,190 @@ using juce::XmlDocument;
 using juce::ScopedPointer;
 using juce::TextButton;
 
-ExtendedFileBrowser::ExtendedFileBrowser(const File& initialFileOrDirectory, const WildcardFileFilter* fileFilter, FileBrowserModel* model, Sampler* sampler) : initialDir(initialFileOrDirectory) {
+ExtendedFileBrowser::ExtendedFileBrowser(const File& initialFileOrDirectory,
+    const WildcardFileFilter* fileFilter,
+    FileBrowserModel* model,
+    Sampler* sampler)
+    : initialDir(initialFileOrDirectory), isDragging(false) {
 
-	// addMouseListener(this, true);
-	table = std::make_unique<TableListBox>();
-	
-	table->getHeader().addColumn("Name", 1, 300);
-	table->getHeader().addColumn("Size", 2, 100);
-	table->setAutoSizeMenuOptionShown(true);
-	table->getHeader().setStretchToFitActive(true);
-	table->setModel(model);
-	this->model = model;
-	view = std::make_unique<Viewport>();	
-	view->setViewedComponent(table.get());
-	addAndMakeVisible(view.get());
-	this->sampler = sampler;
-	table->addMouseListener(this, true);
-	loadState();
-	model->update();
-	juce::Array<juce::File> drives;
-	File::findFileSystemRoots(drives);
+    table = std::make_unique<TableListBox>();
 
-	for (int i = 0; i < drives.size(); i++) {
-		juce::File f = drives.getReference(i);
-		std::unique_ptr<TextButton>button = std::make_unique<TextButton>(f.getFileName());
-		button->addListener(this);
-		button->setSize(30, 20);
-		button->setTopLeftPosition(i * 35, 0);
-		addAndMakeVisible(button.get());
-		driveButtons.push_back(std::move(button));
-	}
+    table->getHeader().addColumn("Name", 1, 300);
+    table->getHeader().addColumn("Size", 2, 100);
+    table->setAutoSizeMenuOptionShown(true);
+    table->getHeader().setStretchToFitActive(true);
+    table->setModel(model);
+    this->model = model;
 
-	repaint();
+
+    view = std::make_unique<Viewport>();
+    view->setViewedComponent(table.get());
+    addAndMakeVisible(view.get());
+    this->sampler = sampler;
+    table->addMouseListener(this, true);
+    loadState();
+    model->update();
+
+    juce::Array<juce::File> drives;
+    File::findFileSystemRoots(drives);
+
+    for (int i = 0; i < drives.size(); i++) {
+        juce::File f = drives.getReference(i);
+        std::unique_ptr<TextButton>button = std::make_unique<TextButton>(f.getFileName());
+        button->addListener(this);
+        button->setSize(30, 20);
+        button->setTopLeftPosition(i * 35, 0);
+        addAndMakeVisible(button.get());
+        driveButtons.push_back(std::move(button));
+    }
+
+    repaint();
 }
 
 ExtendedFileBrowser::~ExtendedFileBrowser() {
-	saveState();
-	table = nullptr;
-	view = nullptr;
-	
-	if (sampler != nullptr) {
-		sampler->stop();
-		delete sampler;
-	}
-	for (int i = 0; i < driveButtons.size(); i++) {
-		driveButtons.at(i) = nullptr;
-	}
+    saveState();
+    table = nullptr;
+    view = nullptr;
+
+    if (sampler != nullptr) {
+        sampler->stop();
+        delete sampler;
+    }
+    for (int i = 0; i < driveButtons.size(); i++) {
+        driveButtons.at(i) = nullptr;
+    }
 }
 
 void ExtendedFileBrowser::paint(juce::Graphics& g) {
-	g.fillAll(Colour(0xff222222));
-	g.fillRect(getLocalBounds());
-	// Component::paint(g);
+    g.fillAll(Colour(0xff222222));
+    g.fillRect(getLocalBounds());
 }
 
 void ExtendedFileBrowser::resized() {
-	if (getParentComponent() != nullptr) {
-		setSize(getParentWidth(), getParentHeight());
-		view->setSize(getWidth(), getHeight());
-		table->setSize(getWidth(), getHeight());
-	}
+    if (getParentComponent() != nullptr) {
+        setSize(getParentWidth(), getParentHeight());
+        view->setSize(getWidth(), getHeight());
+        table->setSize(getWidth(), getHeight());
+    }
 }
 
 void ExtendedFileBrowser::changeListenerCallback(ChangeBroadcaster* source) {
-	table->updateContent();
+    table->updateContent();
 }
 
 void ExtendedFileBrowser::mouseDown(const juce::MouseEvent& event) {
-
-
+    // Speichere die Start-Position für Drag-Operation
+    dragStartPosition = event.getPosition();
+    isDragging = false;
 }
 
-void ExtendedFileBrowser::buttonClicked(Button* button)
-{
-	juce::File* file = new juce::File(button->getButtonText() + "\\");
-	model->setCurrentDir(file);
+void ExtendedFileBrowser::mouseDrag(const juce::MouseEvent& event) {
+    // Überprüfe ob genug Bewegung für einen Drag stattgefunden hat
+    const int dragDistance = 10; // Minimum-Distanz in Pixeln
+
+    if (!isDragging && event.getDistanceFromDragStart() >= dragDistance) {
+        int selectedRow = table->getSelectedRow();
+
+        // Nur wenn eine gültige Datei ausgewählt ist
+        if (selectedRow > 0 && selectedRow < model->getNumRows()) {
+            File selectedFile = model->getDirectoryList()->getFile(selectedRow);
+
+            // Nur Dateien (nicht Verzeichnisse) können gedraggt werden
+            if (selectedFile.exists() && !selectedFile.isDirectory()) {
+                isDragging = true;
+
+                // Erstelle Drag-Image (optional)
+                juce::Image dragImage(juce::Image::ARGB, 150, 20, true);
+                Graphics g(dragImage);
+                g.setColour(juce::Colours::darkgrey);
+                g.fillRoundedRectangle(0, 0, 150, 20, 5.0f);
+                g.setColour(juce::Colours::white);
+                g.drawText(selectedFile.getFileName(), 5, 0, 140, 20, juce::Justification::centredLeft);
+
+                // Starte Drag-Operation
+                startDragging(selectedFile.getFullPathName(), this, dragImage, true);
+            }
+        }
+    }
+}
+
+void ExtendedFileBrowser::buttonClicked(Button* button) {
+    juce::File* file = new juce::File(button->getButtonText() + "\\");
+    model->setCurrentDir(file);
 }
 
 void ExtendedFileBrowser::mouseDoubleClick(const juce::MouseEvent& event) {
+    // Verhindere Double-Click wenn gerade gedraggt wird
+    if (isDragging) {
+        isDragging = false;
+        return;
+    }
 
-	if (table->getSelectedRow() > 0) {
-		File* f = new File(model->getDirectoryList()->getFile(table->getSelectedRow()));
-		if (f->exists()) {
-			if (f->isDirectory()) {
-				model->setCurrentDir(f);
-			}
-			else {
-				if (table->getSelectedRow() > 0) {
-					playFile(table->getSelectedRow());
-				}
-			}
-		}
-	}
-	else {
-		File* current = new File(model->getCurrentDir());
-		File* parent = new File(current->getParentDirectory());
-		model->setCurrentDir(parent);
-		delete current;
-	}
-
+    if (table->getSelectedRow() > 0) {
+        File* f = new File(model->getDirectoryList()->getFile(table->getSelectedRow()));
+        if (f->exists()) {
+            if (f->isDirectory()) {
+                model->setCurrentDir(f);
+            }
+            else {
+                if (table->getSelectedRow() > 0) {
+                    playFile(table->getSelectedRow());
+                }
+            }
+        }
+    }
+    else {
+        File* current = new File(model->getCurrentDir());
+        File* parent = new File(current->getParentDirectory());
+        model->setCurrentDir(parent);
+        delete current;
+    }
 }
 
 void ExtendedFileBrowser::selectNextFile() {
-	int row = table->getSelectedRow();
+    int row = table->getSelectedRow();
 
-	if (row < table->getNumRows() - 1) {
-		row++;
-		table->selectRow(row);
-		playFile(row);
-	}
+    if (row < table->getNumRows() - 1) {
+        row++;
+        table->selectRow(row);
+        playFile(row);
+    }
 }
 
 void ExtendedFileBrowser::selectPreviousFile() {
-	int row = table->getSelectedRow();
+    int row = table->getSelectedRow();
 
-	if (row > 0) {
-		row--;
-		table->selectRow(row);
-		playFile(row);
-	}
+    if (row > 0) {
+        row--;
+        table->selectRow(row);
+        playFile(row);
+    }
 }
 
 void ExtendedFileBrowser::timerCallback() {
-
+    // Timer callback implementation
 }
 
 void ExtendedFileBrowser::playFile(int row) {
-	File f = File(model->getDirectoryList()->getFile(row));
-	if (f.exists()) {
-		if (!f.isDirectory()) {
-			if (f.getFileExtension().toLowerCase().contains("wav") ||
-				f.getFileExtension().toLowerCase().contains("aif") ||
-				f.getFileExtension().toLowerCase().contains("aiff") ||
-				f.getFileExtension().toLowerCase().contains("mp3") ||
-				f.getFileExtension().toLowerCase().contains("sam") ||
-				f.getFileExtension().toLowerCase().contains("ogg")) {
-				if (sampler != nullptr) {
-					sampler->stop();
-					sampler->loadSample(f);
-					// sampler->setPitch(44100.0f/48000.0f);
-					sampler->play();
-				}
-				selectedFile = f;
-				sendChangeMessage();
-			}
-		}
-
-	}
+    File f = File(model->getDirectoryList()->getFile(row));
+    if (f.exists()) {
+        if (!f.isDirectory()) {
+            if (f.getFileExtension().toLowerCase().contains("wav") ||
+                f.getFileExtension().toLowerCase().contains("aif") ||
+                f.getFileExtension().toLowerCase().contains("aiff") ||
+                f.getFileExtension().toLowerCase().contains("mp3") ||
+                f.getFileExtension().toLowerCase().contains("sam") ||
+                f.getFileExtension().toLowerCase().contains("ogg")) {
+                if (sampler != nullptr) {
+                    sampler->stop();
+                    sampler->loadSample(f);
+                    sampler->play();
+                }
+                selectedFile = f;
+                sendChangeMessage();
+            }
+        }
+    }
 }
 
 //===========================================================================
@@ -180,88 +216,83 @@ void ExtendedFileBrowser::playFile(int row) {
 //===========================================================================
 
 FileBrowserModel::FileBrowserModel(DirectoryContentsList* directoryList, File& initalDir) {
-	this->directoryList = directoryList;
-	this->currentDirectory = initalDir.getFullPathName();
-	directoryList->setDirectory(initalDir, true, true);
+    this->directoryList = directoryList;
+    this->currentDirectory = initalDir.getFullPathName();
+    directoryList->setDirectory(initalDir, true, true);
 }
 
 int FileBrowserModel::getNumRows() {
-	return directoryList->getNumFiles() + 1;
+    return directoryList->getNumFiles() + 1;
 }
+
 void FileBrowserModel::paintCell(Graphics& g,
-	int rowNumber,
-	int columnId,
-	int width, int height,
-	bool rowIsSelected) {
+    int rowNumber,
+    int columnId,
+    int width, int height,
+    bool rowIsSelected) {
 
-	g.setColour(juce::Colours::black);
+    g.setColour(juce::Colours::black);
 
-	String text = "";
+    String text = "";
 
-	if (columnId == 1) {
-
-		if (rowNumber > 0) {
-			text = directoryList->getFile(rowNumber).getFileName();
-		}
-		else {
-			text = "[up]";
-		}
-		g.setColour(juce::Colours::white);
-		g.drawText(text, 0, 0, width, height, juce::Justification::centredLeft);
-
-	}
-	else if (columnId == 2) {
-		if (rowNumber > 0) {
-			text = String(directoryList->getFile(rowNumber).getSize() / 1024) + "kB";
-		}
-		else {
-			text = "";
-		}
-
-		g.setColour(juce::Colours::white);
-		g.drawText(text, 0, 0, width, height, juce::Justification::right);
-	}
-
+    if (columnId == 1) {
+        if (rowNumber > 0) {
+            text = directoryList->getFile(rowNumber).getFileName();
+        }
+        else {
+            text = "[up]";
+        }
+        g.setColour(juce::Colours::white);
+        g.drawText(text, 0, 0, width, height, juce::Justification::centredLeft);
+    }
+    else if (columnId == 2) {
+        if (rowNumber > 0) {
+            text = String(directoryList->getFile(rowNumber).getSize() / 1024) + "kB";
+        }
+        else {
+            text = "";
+        }
+        g.setColour(juce::Colours::white);
+        g.drawText(text, 0, 0, width, height, juce::Justification::right);
+    }
 }
 
 void FileBrowserModel::paintRowBackground(Graphics& g,
-	int rowNumber,
-	int width, int height,
-	bool rowIsSelected) {
+    int rowNumber,
+    int width, int height,
+    bool rowIsSelected) {
 
+    if (rowIsSelected) {
+        g.setColour(juce::Colours::orange);
+    }
+    else {
+        g.setColour(Colour(0xff222222));
+    }
 
-	if (rowIsSelected) {
-		g.setColour(juce::Colours::orange);
-	}
-	else {
-		g.setColour(Colour(0xff222222));
-	}
-
-	g.fillRect(0, 0, width, height);
+    g.fillRect(0, 0, width, height);
 }
 
 void FileBrowserModel::setCurrentDir(juce::File* dir) {
-	this->currentDirectory = dir->getFullPathName();
-	directoryList->setDirectory(*dir, true, true);
+    this->currentDirectory = dir->getFullPathName();
+    directoryList->setDirectory(*dir, true, true);
 }
 
 void FileBrowserModel::update() {
-	directoryList->refresh();
+    directoryList->refresh();
 }
 
 DirectoryContentsList* FileBrowserModel::getDirectoryList() {
-	return directoryList;
+    return directoryList;
 }
 
 void ExtendedFileBrowser::saveState() {
-	
+    // Implementation for saving state
 }
 
 void ExtendedFileBrowser::loadState() {
-	
+    // Implementation for loading state
 }
 
-
 File ExtendedFileBrowser::getSelectedFile() {
-	return selectedFile;
+    return selectedFile;
 }

@@ -63,12 +63,35 @@ void SamAudioProcessor::handleNoteOn(juce::MidiKeyboardState* source, int midiCh
 		samplers[midiNoteNumber]->play();
 		voices[midiNoteNumber] = true;
 	}
+	else {
+		if (keyEditor == nullptr) {
+			return;
+		}
+		int note = keyEditor->findZoneForNoteAndVelocity(midiNoteNumber, velocity);
+		if (note > 0) {
+
+			SampleZone* zone =  keyEditor->getZone(note);
+			Sampler* sampler = zone->sampler.get();
+
+			if (numVoices == 0) {
+				sampler->getFilterEnvelope()->noteOn();
+			}
+
+			numVoices++;
+			sampler->getAmpEnvelope()->noteOn(); //(m.getVelocity());
+			sampler->setVolume(velocity);
+			sampler->setCurrentSample(samplers[midiNoteNumber]->getStartPosition());
+			sampler->play();
+			voices[midiNoteNumber] = true;
+
+		}
+	}
+
 	// state.noteOn(midiChannel, midiNoteNumber, velocity / 128);
 }
 
 void SamAudioProcessor::handleNoteOff(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity)
 {
-
 	if (samplers[midiNoteNumber] != nullptr) {
 		if (numVoices > 0) {
 			numVoices--;
@@ -81,7 +104,27 @@ void SamAudioProcessor::handleNoteOff(juce::MidiKeyboardState* source, int midiC
 		samplers[midiNoteNumber]->getAmpEnvelope()->noteOff();
 		voices[midiNoteNumber] = false;
 	}
+	else {
+		if (keyEditor == nullptr) {
+			return;
+		}
+		int note = keyEditor->findZoneForNoteAndVelocity(midiNoteNumber, velocity);
+		if (note > 0) {
+			SampleZone* zone = keyEditor->getZone(note);
+			Sampler* sampler = zone->sampler.get();
+			if (numVoices > 0) {
+				numVoices--;
+			}
+			else {
+				sampler->getFilterEnvelope()->noteOff();
+			}
+			//samplers[m.getNoteNumber()]->stop();
 
+			sampler->getAmpEnvelope()->noteOff();
+			voices[midiNoteNumber] = false;
+
+		}
+	}
 	// state.noteOff(midiChannel, midiNoteNumber, velocity / 128);
 }
 
@@ -367,6 +410,11 @@ void SamAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 	{
 		currentFile = juce::File(xmlState->getStringAttribute("samplesetPath", ""));			
 	}
+}
+
+void SamAudioProcessor::setKeyboardEditor(KeyboardMappingEditor* editor)
+{
+	this->keyEditor = editor;
 }
 
 //==============================================================================

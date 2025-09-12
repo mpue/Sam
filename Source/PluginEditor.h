@@ -11,6 +11,7 @@
 #include "UI/SampleEditor.h"
 #include "UI/CustomKeyboard.h"
 #include "UI/KeyboardMappingEditor.h"
+#include "AudioEngine/Sampler.h"    
 
 //==============================================================================
 
@@ -46,6 +47,9 @@ public:
     void changeListenerCallback(ChangeBroadcaster* source) override;
     void sliderValueChanged(juce::Slider* slider) override;
     void mouseDown(const MouseEvent& event) override;
+
+    void onZoneAdded(int index, const SampleZone& zone);
+    void onZoneRemoved(int index);
 
     std::unique_ptr<CustomKeyboard> keyboard;
     std::unique_ptr <KeyboardMappingEditor> mappingEditor = nullptr;
