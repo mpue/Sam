@@ -19,26 +19,27 @@ using juce::ScopedPointer;
 using juce::AudioFormatReaderSource;
 using juce::InputStream;
 
-Sampler::Sampler(float sampleRate, int bufferSize) {
-
-	juce::Logger::getCurrentLogger()->writeToLog("Creating sample player with sample rate of " + juce::String(sampleRate) + " kHz");
-	this->sampleRate = sampleRate;
-	this->bufferSize = bufferSize;
-
+Sampler::Sampler() {
+	afm = new  juce::AudioFormatManager();
+	afm->registerBasicFormats();
 	this->interpolatorLeft = new CatmullRomInterpolator();
 	this->interpolatorRight = new CatmullRomInterpolator();
 	this->sampleBuffer = new AudioSampleBuffer(2, 1024 * 1024);
-	afm = new  juce::AudioFormatManager();
-	afm->registerBasicFormats();
 	ampEnvelope = std::make_unique<juce::ADSR>();
-	ampEnvelope->setSampleRate(sampleRate);
 	filterEnvelope = std::make_unique<juce::ADSR>();
-	filterEnvelope->setSampleRate(sampleRate);
 	lpfLeftStage1 = std::make_unique<MultimodeFilter>();
 	lpfRightStage1 = std::make_unique<MultimodeFilter>();
-	lpfLeftStage1->coefficients(sampleRate, 22000.0f, 0.1f);
-	lpfRightStage1->coefficients(sampleRate, 22000.0, 0.1f);
+};
 
+
+Sampler::Sampler(float sampleRate, int bufferSize) : Sampler() {
+	juce::Logger::getCurrentLogger()->writeToLog("Creating sample player with sample rate of " + juce::String(sampleRate) + " kHz");
+	this->sampleRate = sampleRate;
+	this->bufferSize = bufferSize;
+	ampEnvelope->setSampleRate(sampleRate);
+	filterEnvelope->setSampleRate(sampleRate);
+	lpfLeftStage1->coefficients(sampleRate, 22000.0f, 0.1f);
+	lpfRightStage1->coefficients(sampleRate, 22000.0, 0.1f);	
 }
 
 Sampler::~Sampler() {
@@ -54,6 +55,8 @@ Sampler::~Sampler() {
 	delete interpolatorLeft;
 	delete interpolatorRight;
 	delete afm;
+	lpfLeftStage1 = nullptr;
+	lpfRightStage1 = nullptr;
 	ampEnvelope = nullptr;
 	filterEnvelope = nullptr;
 }

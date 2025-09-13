@@ -600,19 +600,19 @@ void SamAudioProcessorEditor::onZoneAdded(int index, const SampleZone& zone)
 {
 	juce::Logger::writeToLog("Zone added at index " + juce::String(index));
 
-	String userHome = File::getSpecialLocation(File::userHomeDirectory).getFullPathName();
+	//String userHome = File::getSpecialLocation(File::userHomeDirectory).getFullPathName();
 
-	juce::FileChooser chooser("Select sample to add", juce::File(userHome), "*");
+	//juce::FileChooser chooser("Select sample to add", juce::File(userHome), "*");
 
-	if (chooser.browseForFileToOpen()) {
+	//if (chooser.browseForFileToOpen()) {
 
-		juce::File file = chooser.getResult();
-		zones[index].sampler = std::make_unique<Sampler>(audioProcessor.sampleRate, audioProcessor.bufferSize);		
-		zones[index].sampler->loadSample(file);
-		zones[index].sampler->setLoop(true);
-		zones[index].sampler->play();
+	juce::File file = zones[index].audioFile;
+	zones[index].sampler = std::make_unique<Sampler>(audioProcessor.sampleRate, audioProcessor.bufferSize);		
+	zones[index].sampler->loadSample(file);
+	zones[index].sampler->setLoop(true);
+	zones[index].sampler->play();
 
-	}
+	// }
 }
 
 void SamAudioProcessorEditor::onZoneRemoved(int index)

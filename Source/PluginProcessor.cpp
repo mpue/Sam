@@ -67,40 +67,32 @@ void SamAudioProcessor::handleNoteOn(juce::MidiKeyboardState* source, int midiCh
 		if (keyEditor == nullptr) {
 			return;
 		}
-		int note = keyEditor->findZoneForNoteAndVelocity(midiNoteNumber, velocity);
-		if (note > 0) {
+		int note = keyEditor->findZoneForNoteAndVelocity(midiNoteNumber, (int)(velocity*127));
+		Logger::getCurrentLogger()->writeToLog("NoteOff : Zone for note " + String(midiNoteNumber) + " : " + String(note));
+		if (note >= 0) {
 
 			SampleZone* zone =  keyEditor->getZone(note);
 			Sampler* sampler = zone->sampler.get();
+			sampler->getFilterEnvelope()->noteOn();
 
-			if (numVoices == 0) {
-				sampler->getFilterEnvelope()->noteOn();
-			}
-
-			numVoices++;
 			sampler->getAmpEnvelope()->noteOn(); //(m.getVelocity());
 			sampler->setVolume(velocity);
-			sampler->setCurrentSample(samplers[midiNoteNumber]->getStartPosition());
+			sampler->setCurrentSample(0);
 			sampler->play();
 			voices[midiNoteNumber] = true;
 
 		}
 	}
+	numVoices++;
 
 	// state.noteOn(midiChannel, midiNoteNumber, velocity / 128);
 }
 
 void SamAudioProcessor::handleNoteOff(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity)
 {
-	if (samplers[midiNoteNumber] != nullptr) {
-		if (numVoices > 0) {
-			numVoices--;
-		}
-		else {
-			samplers[midiNoteNumber]->getFilterEnvelope()->noteOff();
-		}
-		//samplers[m.getNoteNumber()]->stop();
 
+	if (samplers[midiNoteNumber] != nullptr) {
+		samplers[midiNoteNumber]->getFilterEnvelope()->noteOff();
 		samplers[midiNoteNumber]->getAmpEnvelope()->noteOff();
 		voices[midiNoteNumber] = false;
 	}
@@ -108,24 +100,22 @@ void SamAudioProcessor::handleNoteOff(juce::MidiKeyboardState* source, int midiC
 		if (keyEditor == nullptr) {
 			return;
 		}
-		int note = keyEditor->findZoneForNoteAndVelocity(midiNoteNumber, velocity);
-		if (note > 0) {
-			SampleZone* zone = keyEditor->getZone(note);
+		std::vector<int> zoneIndices = keyEditor->findAllZonesForNote(midiNoteNumber);
+		
+		for (int i = 0; i < zoneIndices.size(); i++) {
+			int zoneIndex = zoneIndices[i];		
+			SampleZone* zone = keyEditor->getZone(zoneIndex);
 			Sampler* sampler = zone->sampler.get();
-			if (numVoices > 0) {
-				numVoices--;
-			}
-			else {
-				sampler->getFilterEnvelope()->noteOff();
-			}
-			//samplers[m.getNoteNumber()]->stop();
-
+			sampler->getFilterEnvelope()->noteOff();
 			sampler->getAmpEnvelope()->noteOff();
-			voices[midiNoteNumber] = false;
 
 		}
 	}
 	// state.noteOff(midiChannel, midiNoteNumber, velocity / 128);
+	if (numVoices > 0) {
+		numVoices--;
+	}
+	voices[midiNoteNumber] = false;
 }
 
 bool SamAudioProcessor::acceptsMidi() const
@@ -298,6 +288,29 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 
 			}
 
+		}
+
+		if (keyEditor != nullptr) {
+			for (int j = 0; j < keyEditor->getNumZones(); j++){
+				SampleZone* zone = keyEditor->getZone(j);
+				if (zone->sampler != nullptr) {
+					for (int i = 0; i < bufferSize; i++) {
+						envValue = zone->sampler->getAmpEnvelope()->getNextSample();
+						zone->sampler->nextSample();
+						float left = zone->sampler->getCurrentSample(0) * envValue;
+						float right = zone->sampler->getCurrentSample(1) * envValue;
+						buffer.addSample(0, i, left);
+						buffer.addSample(1, i, right);
+					}
+					if (zone->sampler->getFilterEnvelope() != nullptr) {
+						float f = cutoff + (zone->sampler->getFilterEnvelope()->getNextSample() * amount * (22000 - cutoff));
+						if (f < 0) {
+							f = 0;
+						}
+						lpfLeftStage1->coefficients(sampleRate, f, resonance);
+					}
+				}
+			}			
 		}
 
 
