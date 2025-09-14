@@ -520,7 +520,7 @@ void SamAudioProcessor::loadFile(juce::File file)
 	juce::ValueTree v = juce::ValueTree::fromXml(*xml.get());
 	xml = nullptr;
 
-	
+	// Clear existing samplers
 	for (int i = 0; i < 128; i++) {
 		if (samplers[i] != nullptr) {
 			samplers[i] = nullptr;
@@ -528,46 +528,64 @@ void SamAudioProcessor::loadFile(juce::File file)
 	}
 	
 	int count = 0;
-
+	bool hasZones = false;
+	
+	// Check if this file has zone data (new format) by looking for a "Zones" child
 	for (int i = 0; i < v.getNumChildren(); i++) {
-		std::unique_ptr <Sampler> s = std::make_unique<Sampler>(sampleRate, bufferSize);
-		s->loadSample(juce::File(v.getChild(i).getProperty("sample").toString()));
-
-		juce::String sLoop = v.getChild(i).getProperty("loop").toString();
-
-		if (sLoop == "true") {
-			s->setLoop(true);
+		if (v.getChild(i).getType().toString() == "Zones") {
+			hasZones = true;
+			break;
 		}
-		else {
-			s->setLoop(false);
-		}
-		s->setStartPosition(v.getChild(i).getProperty("loopStart").toString().getLargeIntValue());
-		s->setEndPosition(v.getChild(i).getProperty("loopEnd").toString().getLargeIntValue());
-		s->setPitch(v.getChild(i).getProperty("pitch").toString().getFloatValue());
-		s->setReverse(v.getChild(i).getProperty("reverse").toString() == "true");
-
-		juce::ADSR::Parameters params;
-		params.attack = v.getChild(i).getProperty("amp_attack").toString().getFloatValue();
-		params.decay = v.getChild(i).getProperty("amp_decay").toString().getFloatValue();
-		params.sustain = v.getChild(i).getProperty("amp_sustain").toString().getFloatValue();
-		params.release = v.getChild(i).getProperty("amp_release").toString().getFloatValue();
-		s->getAmpEnvelope()->setParameters(params);
-		
-		juce::ADSR::Parameters filterParams;
-		filterParams.attack = v.getChild(i).getProperty("filter_attack").toString().getFloatValue();
-		filterParams.decay = v.getChild(i).getProperty("filter_decay").toString().getFloatValue();
-		filterParams.sustain = v.getChild(i).getProperty("filter_sustain").toString().getFloatValue();
-		filterParams.release = v.getChild(i).getProperty("filter_release").toString().getFloatValue();
-		s.get()->getFilterEnvelope()->setParameters(filterParams);
-
-		s->play();
-		int index = v.getChild(i).getProperty("note").toString().getIntValue();
-				
-		samplers[index] = std::move(s);
-		count++;
 	}
+
+	// Load sampler data (both legacy and new format have this)
+	for (int i = 0; i < v.getNumChildren(); i++) {
+		juce::ValueTree child = v.getChild(i);
+		
+		// Skip zones data in this pass - we'll handle it separately
+		if (child.getType().toString() == "Zones") {
+			continue;
+		}
+		
+		// Load sample data
+		if (child.getType().toString() == "Sample") {
+			std::unique_ptr<Sampler> s = std::make_unique<Sampler>(sampleRate, bufferSize);
+			s->loadSample(juce::File(child.getProperty("sample").toString()));
+
+			juce::String sLoop = child.getProperty("loop").toString();
+			s->setLoop(sLoop == "true");
+			
+			s->setStartPosition(child.getProperty("loopStart").toString().getLargeIntValue());
+			s->setEndPosition(child.getProperty("loopEnd").toString().getLargeIntValue());
+			s->setPitch(child.getProperty("pitch").toString().getFloatValue());
+			s->setReverse(child.getProperty("reverse").toString() == "true");
+
+			juce::ADSR::Parameters params;
+			params.attack = child.getProperty("amp_attack").toString().getFloatValue();
+			params.decay = child.getProperty("amp_decay").toString().getFloatValue();
+			params.sustain = child.getProperty("amp_sustain").toString().getFloatValue();
+			params.release = child.getProperty("amp_release").toString().getFloatValue();
+			s->getAmpEnvelope()->setParameters(params);
+			
+			juce::ADSR::Parameters filterParams;
+			filterParams.attack = child.getProperty("filter_attack").toString().getFloatValue();
+			filterParams.decay = child.getProperty("filter_decay").toString().getFloatValue();
+			filterParams.sustain = child.getProperty("filter_sustain").toString().getFloatValue();
+			filterParams.release = child.getProperty("filter_release").toString().getFloatValue();
+			s.get()->getFilterEnvelope()->setParameters(filterParams);
+
+			s->play();
+			int index = child.getProperty("note").toString().getIntValue();
+					
+			samplers[index] = std::move(s);
+			count++;
+		}
+		
+	}
+
 	juce::Logger::writeToLog("Loaded " + juce::String(count) + " samplers.");
 
 	currentFile = file;
+
 	saveSettings(currentFile.getParentDirectory().getFullPathName());
 }

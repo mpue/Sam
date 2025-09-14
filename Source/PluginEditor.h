@@ -39,10 +39,12 @@ public:
 
     void handleNoteOn(juce::MidiKeyboardState* source,
         int midiChannel, int midiNoteNumber, float velocity) override;
+    void selectZone(int zoneIndex);
     void handleNoteOff(juce::MidiKeyboardState* source,
         int midiChannel, int midiNoteNumber, float velocity) override;
 
-    void buttonClicked(juce::Button* button) override;    
+    void buttonClicked(juce::Button* button) override;
+    void saveSet(juce::String& userHome);
     void timerCallback() override;
     void changeListenerCallback(ChangeBroadcaster* source) override;
     void sliderValueChanged(juce::Slider* slider) override;
@@ -50,6 +52,7 @@ public:
 
     void onZoneAdded(int index, const SampleZone& zone);
     void onZoneRemoved(int index);
+    void onSelectionChanged(int index);
 
     std::unique_ptr<CustomKeyboard> keyboard;
     std::unique_ptr <KeyboardMappingEditor> mappingEditor = nullptr;

@@ -327,40 +327,10 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 				lock.exit();
 				return;
 			}
-			int note = mappingEditor->findZoneForNoteAndVelocity(midiNoteNumber, velocity);
-			if (note > 0) {
-				Sampler* sampler = zones[note].sampler.get();
 
-				noteLabel->setText("current : " + juce::String(midiNoteNumber), juce::NotificationType::dontSendNotification);
-
-				ampEnvelope->setEnvelope(sampler->getAmpEnvelope());
-
-				float a = sampler->getAmpEnvelope()->getParameters().attack;
-				float d = sampler->getAmpEnvelope()->getParameters().decay;
-				float s = sampler->getAmpEnvelope()->getParameters().sustain;
-				float r = sampler->getAmpEnvelope()->getParameters().release;
-
-				ampEnvelope->setADSR(a, d, s, r);
-
-				this->loopButton->setToggleState(sampler->isLoop(), juce::NotificationType::dontSendNotification);
-				pitchSlider->setValue(sampler->getPitchAsFloat());
-
-				if (sampler->hasSample()) {
-					sampleEditor->setSampler(sampler);
-				}
-				filterEnvelope->setEnvelope(sampler->getFilterEnvelope());
-
-				a = sampler->getFilterEnvelope()->getParameters().attack;
-				d = sampler->getFilterEnvelope()->getParameters().decay;
-				s = sampler->getFilterEnvelope()->getParameters().sustain;
-				r = sampler->getFilterEnvelope()->getParameters().release;
-
-				filterEnvelope->setADSR(a, d, s, r);
-
-				repaint();
-
-				sampleEditor->repaint();
-				ampEnvelope->repaint();
+			int zone = mappingEditor->findZoneForNote(midiNoteNumber);
+			if (zone >= 0) {
+				selectZone(zone);
 			}
 			else {
 				sampleEditor->setSampler(nullptr);
@@ -372,6 +342,45 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 	};
 	juce::MessageManager::callAsync(changeLambda);
 
+}
+
+void SamAudioProcessorEditor::selectZone(int zoneIndex)
+{
+	Sampler* sampler = zones[zoneIndex].sampler.get();
+
+	if (sampler == nullptr) {
+		return;
+	}
+
+	ampEnvelope->setEnvelope(sampler->getAmpEnvelope());
+
+	float a = sampler->getAmpEnvelope()->getParameters().attack;
+	float d = sampler->getAmpEnvelope()->getParameters().decay;
+	float s = sampler->getAmpEnvelope()->getParameters().sustain;
+	float r = sampler->getAmpEnvelope()->getParameters().release;
+
+	ampEnvelope->setADSR(a, d, s, r);
+
+	this->loopButton->setToggleState(sampler->isLoop(), juce::NotificationType::dontSendNotification);
+	pitchSlider->setValue(sampler->getPitchAsFloat());
+
+	if (sampler->hasSample()) {
+		sampleEditor->setSampler(sampler);
+	}
+	filterEnvelope->setEnvelope(sampler->getFilterEnvelope());
+
+	a = sampler->getFilterEnvelope()->getParameters().attack;
+	d = sampler->getFilterEnvelope()->getParameters().decay;
+	s = sampler->getFilterEnvelope()->getParameters().sustain;
+	r = sampler->getFilterEnvelope()->getParameters().release;
+
+	filterEnvelope->setADSR(a, d, s, r);
+
+	repaint();
+
+	sampleEditor->repaint();
+	ampEnvelope->repaint();
+	
 }
 
 void SamAudioProcessorEditor::handleNoteOff(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity)
@@ -421,6 +430,9 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 
 			juce::File file = chooser.getResult();
 			audioProcessor.loadFile(file);
+			
+			// Load zone data if available			
+			
 			for (int i = 0; i < 128; i++) {
 				if (audioProcessor.samplers[i] != nullptr) {
 					keyboard->setNoteColour(i, juce::Colours::green);
@@ -429,46 +441,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 		}
 	}
 	else if (button == saveSetButton.get()) {
-
-
-		juce::FileChooser chooser("Select target file", juce::File(userHome), "*");
-
-		if (chooser.browseForFileToSave(true)) {
-
-			juce::File file = chooser.getResult();
-
-			juce::ValueTree audioFiles = juce::ValueTree("Samples");
-
-			for (int i = 0; i < 128; i++) {
-				if (audioProcessor.samplers[i] != nullptr) {
-					juce::ValueTree file = juce::ValueTree("Sample");
-					file.setProperty("note", i, nullptr);
-					file.setProperty("loop", audioProcessor.samplers[i]->isLoop(), nullptr);
-					file.setProperty("reverse", audioProcessor.samplers[i]->isReverse(), nullptr);
-					file.setProperty("sample", audioProcessor.samplers[i]->getSampleLocation(), nullptr);
-					file.setProperty("amp_attack", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().attack, nullptr);
-					file.setProperty("amp_decay", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().decay, nullptr);
-					file.setProperty("amp_sustain", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().sustain, nullptr);
-					file.setProperty("amp_release", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().release, nullptr);
-					file.setProperty("filter_attack",  audioProcessor.samplers[i]->getFilterEnvelope()->getParameters().attack, nullptr);
-					file.setProperty("filter_decay",   audioProcessor.samplers[i]->getFilterEnvelope()->getParameters().decay, nullptr);
-					file.setProperty("filter_sustain", audioProcessor.samplers[i]->getFilterEnvelope()->getParameters().sustain, nullptr);
-					file.setProperty("filter_release", audioProcessor.samplers[i]->getFilterEnvelope()->getParameters().release, nullptr);
-
-					file.setProperty("loopStart", audioProcessor.samplers[i]->getStartPosition(), nullptr);
-					file.setProperty("loopEnd", audioProcessor.samplers[i]->getEndPosition(), nullptr);
-					file.setProperty("pitch", audioProcessor.samplers[i]->getPitchAsFloat(), nullptr);
-
-					audioFiles.addChild(file, -1, nullptr);
-				}
-
-			}
-
-			std::unique_ptr < juce::XmlElement > xml = audioFiles.createXml();
-			xml->writeToFile(file, "");
-			xml = nullptr;
-			audioProcessor.saveSettings(file.getParentDirectory().getFullPathName());
-		}
+		saveSet(userHome);
 	}
 	else if (button == newSetButton.get()) {
 		for (int i = 0; i < 128; i++) {
@@ -557,6 +530,10 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 			mappingEditor->setZoneRemovedCallback([this](int index) {
 				onZoneRemoved(index);
 			});
+
+			mappingEditor->setSelectionChangedCallback([this](int index) {
+				onSelectionChanged(index);
+			});
 		}
 
 		mappingEditor->setSize(keyboard->getWidth(), 250);
@@ -596,15 +573,93 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 	}
 }
 
+void SamAudioProcessorEditor::saveSet(juce::String& userHome)
+{
+	juce::FileChooser chooser("Select target file", juce::File(userHome), "*");
+
+	if (chooser.browseForFileToSave(true)) {
+
+		juce::File file = chooser.getResult();
+
+		juce::ValueTree audioFiles = juce::ValueTree("Samples");
+
+		// Save sampler data
+		for (int i = 0; i < 128; i++) {
+			if (audioProcessor.samplers[i] != nullptr) {
+				juce::ValueTree sampleNode = juce::ValueTree("Sample");
+				sampleNode.setProperty("note", i, nullptr);
+				sampleNode.setProperty("loop", audioProcessor.samplers[i]->isLoop(), nullptr);
+				sampleNode.setProperty("reverse", audioProcessor.samplers[i]->isReverse(), nullptr);
+				sampleNode.setProperty("sample", audioProcessor.samplers[i]->getSampleLocation(), nullptr);
+				sampleNode.setProperty("amp_attack", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().attack, nullptr);
+				sampleNode.setProperty("amp_decay", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().decay, nullptr);
+				sampleNode.setProperty("amp_sustain", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().sustain, nullptr);
+				sampleNode.setProperty("amp_release", audioProcessor.samplers[i]->getAmpEnvelope()->getParameters().release, nullptr);
+				sampleNode.setProperty("filter_attack", audioProcessor.samplers[i]->getFilterEnvelope()->getParameters().attack, nullptr);
+				sampleNode.setProperty("filter_decay", audioProcessor.samplers[i]->getFilterEnvelope()->getParameters().decay, nullptr);
+				sampleNode.setProperty("filter_sustain", audioProcessor.samplers[i]->getFilterEnvelope()->getParameters().sustain, nullptr);
+				sampleNode.setProperty("filter_release", audioProcessor.samplers[i]->getFilterEnvelope()->getParameters().release, nullptr);
+				sampleNode.setProperty("loopStart", audioProcessor.samplers[i]->getStartPosition(), nullptr);
+				sampleNode.setProperty("loopEnd", audioProcessor.samplers[i]->getEndPosition(), nullptr);
+				sampleNode.setProperty("pitch", audioProcessor.samplers[i]->getPitchAsFloat(), nullptr);
+
+				audioFiles.addChild(sampleNode, -1, nullptr);
+			}
+		}
+
+		// Save zone data
+		juce::ValueTree zonesNode = juce::ValueTree("Zones");
+		for (int i = 0; i < static_cast<int>(zones.size()); i++) {
+			const SampleZone& zone = zones[i];
+			
+			juce::ValueTree zoneNode = juce::ValueTree("Zone");
+			zoneNode.setProperty("index", i, nullptr);
+			zoneNode.setProperty("startNote", zone.startNote, nullptr);
+			zoneNode.setProperty("endNote", zone.endNote, nullptr);
+			zoneNode.setProperty("velLow", zone.velLow, nullptr);
+			zoneNode.setProperty("velHigh", zone.velHigh, nullptr);
+			zoneNode.setProperty("note", zone.note, nullptr);
+			zoneNode.setProperty("name", zone.name, nullptr);
+			zoneNode.setProperty("audioFile", zone.audioFile.getFullPathName(), nullptr);
+			
+			// Save sampler properties if present
+			if (zone.sampler != nullptr) {
+				zoneNode.setProperty("hasAudio", true, nullptr);
+				zoneNode.setProperty("loop", zone.sampler->isLoop(), nullptr);
+				zoneNode.setProperty("reverse", zone.sampler->isReverse(), nullptr);
+				zoneNode.setProperty("pitch", zone.sampler->getPitchAsFloat(), nullptr);
+				zoneNode.setProperty("loopStart", zone.sampler->getStartPosition(), nullptr);
+				zoneNode.setProperty("loopEnd", zone.sampler->getEndPosition(), nullptr);
+				
+				// Save envelope parameters
+				zoneNode.setProperty("amp_attack", zone.sampler->getAmpEnvelope()->getParameters().attack, nullptr);
+				zoneNode.setProperty("amp_decay", zone.sampler->getAmpEnvelope()->getParameters().decay, nullptr);
+				zoneNode.setProperty("amp_sustain", zone.sampler->getAmpEnvelope()->getParameters().sustain, nullptr);
+				zoneNode.setProperty("amp_release", zone.sampler->getAmpEnvelope()->getParameters().release, nullptr);
+				zoneNode.setProperty("filter_attack", zone.sampler->getFilterEnvelope()->getParameters().attack, nullptr);
+				zoneNode.setProperty("filter_decay", zone.sampler->getFilterEnvelope()->getParameters().decay, nullptr);
+				zoneNode.setProperty("filter_sustain", zone.sampler->getFilterEnvelope()->getParameters().sustain, nullptr);
+				zoneNode.setProperty("filter_release", zone.sampler->getFilterEnvelope()->getParameters().release, nullptr);
+			} 
+			else {
+				zoneNode.setProperty("hasAudio", false, nullptr);
+			}
+			
+			zonesNode.addChild(zoneNode, -1, nullptr);
+		}
+		
+		audioFiles.addChild(zonesNode, -1, nullptr);
+
+		std::unique_ptr<juce::XmlElement> xml = audioFiles.createXml();
+		xml->writeToFile(file, "");
+		xml = nullptr;
+		audioProcessor.saveSettings(file.getParentDirectory().getFullPathName());
+	}
+}
+
 void SamAudioProcessorEditor::onZoneAdded(int index, const SampleZone& zone)
 {
 	juce::Logger::writeToLog("Zone added at index " + juce::String(index));
-
-	//String userHome = File::getSpecialLocation(File::userHomeDirectory).getFullPathName();
-
-	//juce::FileChooser chooser("Select sample to add", juce::File(userHome), "*");
-
-	//if (chooser.browseForFileToOpen()) {
 
 	juce::File file = zones[index].audioFile;
 	zones[index].sampler = std::make_unique<Sampler>(audioProcessor.sampleRate, audioProcessor.bufferSize);		
@@ -612,13 +667,18 @@ void SamAudioProcessorEditor::onZoneAdded(int index, const SampleZone& zone)
 	zones[index].sampler->setLoop(true);
 	zones[index].sampler->play();
 
-	// }
+	selectZone(index);
 }
 
 void SamAudioProcessorEditor::onZoneRemoved(int index)
 {
 	juce::Logger::writeToLog("Zone removed from index " + juce::String(index));
 
+}
+
+void SamAudioProcessorEditor::onSelectionChanged(int index)
+{
+	selectZone(index);
 }
 
 void SamAudioProcessorEditor::timerCallback()
@@ -642,7 +702,10 @@ void SamAudioProcessorEditor::changeListenerCallback(ChangeBroadcaster* source)
 
 		if (efb->getSelectedFile().getFileExtension() == ".sam") {
 			sampleEditor->setSampler(nullptr);
-			audioProcessor.loadFile(efb->getSelectedFile());	
+			audioProcessor.loadFile(efb->getSelectedFile());
+			
+			// Load zone data if available
+			
 
 		}
 		else {
@@ -721,5 +784,20 @@ void SamAudioProcessorEditor::mouseDown(const MouseEvent& event)
 		
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
