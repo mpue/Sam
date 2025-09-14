@@ -312,8 +312,6 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 				}
 			}			
 		}
-
-
 		currentSample = (currentSample + bufferSize) % buffer.getNumSamples();
 		magnitude = buffer.getMagnitude(currentSample, bufferSize);
 

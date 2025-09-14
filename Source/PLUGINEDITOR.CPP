@@ -333,6 +333,7 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 				selectZone(zone);
 			}
 			else {
+				currentSelectedZoneIndex = -1;  // No zone selected
 				sampleEditor->setSampler(nullptr);
 				sampleEditor->repaint();
 			}
@@ -347,12 +348,18 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 void SamAudioProcessorEditor::selectZone(int zoneIndex)
 {
 	if (zoneIndex < 0) {
+		currentSelectedZoneIndex = -1;
+		juce::Logger::writeToLog("Deselected zone");
 		return;
 	}
 
+	currentSelectedZoneIndex = zoneIndex;
+	juce::Logger::writeToLog("Selected zone " + juce::String(zoneIndex));
+	
 	Sampler* sampler = zones[zoneIndex].sampler.get();
 
 	if (sampler == nullptr) {
+		juce::Logger::writeToLog("Warning: Zone " + juce::String(zoneIndex) + " has no sampler");
 		return;
 	}
 
@@ -366,10 +373,12 @@ void SamAudioProcessorEditor::selectZone(int zoneIndex)
 	ampEnvelope->setADSR(a, d, s, r);
 
 	this->loopButton->setToggleState(sampler->isLoop(), juce::NotificationType::dontSendNotification);
+	this->reverseButton->setToggleState(sampler->isReverse(), juce::NotificationType::dontSendNotification);
 	pitchSlider->setValue(sampler->getPitchAsFloat());
 
 	if (sampler->hasSample()) {
 		sampleEditor->setSampler(sampler);
+		juce::Logger::writeToLog("Set sample editor to zone " + juce::String(zoneIndex) + " sampler");
 	}
 	filterEnvelope->setEnvelope(sampler->getFilterEnvelope());
 
@@ -460,14 +469,34 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 	}
 	else if (button == loopButton.get())
 	{
-		if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
+		// Handle both zones and legacy samplers
+		if (currentSelectedZoneIndex >= 0 && currentSelectedZoneIndex < static_cast<int>(zones.size())) {
+			// Working with a zone
+			if (zones[currentSelectedZoneIndex].sampler != nullptr) {
+				zones[currentSelectedZoneIndex].sampler->setLoop(loopButton->getToggleState());
+				juce::Logger::writeToLog("Set loop for zone " + juce::String(currentSelectedZoneIndex) + " to " + (loopButton->getToggleState() ? "ON" : "OFF"));
+			}
+		}
+		else if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
+			// Working with legacy sampler
 			audioProcessor.samplers[audioProcessor.currentSampleIndex]->setLoop(loopButton->getToggleState());
+			juce::Logger::writeToLog("Set loop for legacy sampler " + juce::String(audioProcessor.currentSampleIndex) + " to " + (loopButton->getToggleState() ? "ON" : "OFF"));
 		}
 	}
 	else if (button == reverseButton.get())
 	{
-		if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
+		// Handle both zones and legacy samplers
+		if (currentSelectedZoneIndex >= 0 && currentSelectedZoneIndex < static_cast<int>(zones.size())) {
+			// Working with a zone
+			if (zones[currentSelectedZoneIndex].sampler != nullptr) {
+				zones[currentSelectedZoneIndex].sampler->setReverse(reverseButton->getToggleState());
+				juce::Logger::writeToLog("Set reverse for zone " + juce::String(currentSelectedZoneIndex) + " to " + (reverseButton->getToggleState() ? "ON" : "OFF"));
+			}
+		}
+		else if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
+			// Working with legacy sampler
 			audioProcessor.samplers[audioProcessor.currentSampleIndex]->setReverse(reverseButton->getToggleState());
+			juce::Logger::writeToLog("Set reverse for legacy sampler " + juce::String(audioProcessor.currentSampleIndex) + " to " + (reverseButton->getToggleState() ? "ON" : "OFF"));
 		}
 	}
 	else if (button == sequencerViewButton.get()) {
@@ -480,6 +509,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 		//sequenceEditor->setVisible(false);		
 		sampleEditor->setVisible(true);
 		currentMode = UIMode::Main;
+		currentSelectedZoneIndex = -1;  // Clear zone selection when switching to main view
 		ampEnvelope->setVisible(true);
 		filterEnvelope->setVisible(true);
 		ampEnvelope->setVisible(true);
@@ -755,8 +785,18 @@ void SamAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
 		audioProcessor.amount = amtSlider->getValue();
 	}
 	else if (slider == pitchSlider.get()) {
-		if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
+		// Handle both zones and legacy samplers
+		if (currentSelectedZoneIndex >= 0 && currentSelectedZoneIndex < static_cast<int>(zones.size())) {
+			// Working with a zone
+			if (zones[currentSelectedZoneIndex].sampler != nullptr) {
+				zones[currentSelectedZoneIndex].sampler->setPitch(pitchSlider->getValue());
+				juce::Logger::writeToLog("Set pitch for zone " + juce::String(currentSelectedZoneIndex) + " to " + juce::String(pitchSlider->getValue()));
+			}
+		}
+		else if (audioProcessor.samplers[audioProcessor.currentSampleIndex] != nullptr) {
+			// Working with legacy sampler
 			audioProcessor.samplers[audioProcessor.currentSampleIndex]->setPitch(pitchSlider->getValue());
+			juce::Logger::writeToLog("Set pitch for legacy sampler " + juce::String(audioProcessor.currentSampleIndex) + " to " + juce::String(pitchSlider->getValue()));
 		}
 	}
 	if (audioProcessor.lpfLeftStage1 != nullptr)

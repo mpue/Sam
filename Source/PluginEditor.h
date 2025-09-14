@@ -88,6 +88,7 @@ public:
 
     UIMode currentMode = UIMode::Main;
     std::vector<SampleZone> zones;
+    int currentSelectedZoneIndex = -1;  // Track currently selected zone
 
 private:
 
