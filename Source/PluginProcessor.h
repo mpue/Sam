@@ -20,6 +20,7 @@
 #include "UI/KeyboardMappingEditor.h"
 
 class SamAudioProcessorEditor;
+
 //==============================================================================
 /**
 */
@@ -107,6 +108,21 @@ public:
     bool loaded = false;
     std::unique_ptr<Sampler> samplers[128] = { nullptr };
     KeyboardMappingEditor* keyEditor = nullptr;
+    
+    // Zone data handling - using SampleZone from KeyboardMappingEditor.h
+    std::vector<SampleZone> loadedZones;
+    bool hasLoadedZoneData = false;
+    
+    // Method for editor to get and clear zone data
+    std::vector<SampleZone> getAndClearLoadedZones() {
+        auto zones = std::move(loadedZones);
+        loadedZones.clear();
+        hasLoadedZoneData = false;
+        return zones;
+    }
+    
+    bool hasZoneDataToLoad() const { return hasLoadedZoneData; }
+
 private:
     juce::File currentFile;
     float envValue = 0;

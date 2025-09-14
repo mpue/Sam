@@ -97,7 +97,7 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 
 	fxViewButton = std::make_unique<juce::TextButton>("Effects");
 	fxViewButton->setSize(140, 20);
-	fxViewButton->setTopLeftPosition(455, 420);
+	fxViewButton->setTopLeftPosition(455,420);
 	addAndMakeVisible(fxViewButton.get());
 	fxViewButton->setEnabled(false);
 
@@ -346,6 +346,10 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 
 void SamAudioProcessorEditor::selectZone(int zoneIndex)
 {
+	if (zoneIndex < 0) {
+		return;
+	}
+
 	Sampler* sampler = zones[zoneIndex].sampler.get();
 
 	if (sampler == nullptr) {
@@ -430,8 +434,10 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 
 			juce::File file = chooser.getResult();
 			audioProcessor.loadFile(file);
+
 			
-			// Load zone data if available			
+			// Load zone data if available
+			loadZonesFromProcessor();
 			
 			for (int i = 0; i < 128; i++) {
 				if (audioProcessor.samplers[i] != nullptr) {
@@ -705,7 +711,7 @@ void SamAudioProcessorEditor::changeListenerCallback(ChangeBroadcaster* source)
 			audioProcessor.loadFile(efb->getSelectedFile());
 			
 			// Load zone data if available
-			
+			loadZonesFromProcessor();
 
 		}
 		else {
@@ -783,6 +789,32 @@ void SamAudioProcessorEditor::mouseDown(const MouseEvent& event)
 		}
 		
 	}
+}
+
+//==============================================================================
+void SamAudioProcessorEditor::loadZonesFromProcessor()
+{
+	if (!audioProcessor.hasZoneDataToLoad()) {
+		return;
+	}
+	
+	// Clear existing zones
+	zones.clear();
+	
+	// Get loaded zone data from processor - now returns SampleZone objects directly
+	auto loadedZones = audioProcessor.getAndClearLoadedZones();
+	
+	// Move the zones directly into our zones vector
+	for (auto& zone : loadedZones) {
+		zones.push_back(std::move(zone));
+	}
+	
+	// Update mapping editor if it exists
+	if (mappingEditor != nullptr) {
+		mappingEditor->repaint();
+	}
+	
+	juce::Logger::writeToLog("Loaded " + juce::String(zones.size()) + " zones into editor.");
 }
 
 

@@ -585,7 +585,69 @@ void SamAudioProcessor::loadFile(juce::File file)
 
 	juce::Logger::writeToLog("Loaded " + juce::String(count) + " samplers.");
 
-	currentFile = file;
+	// Store zone data for the editor to load later
+	loadedZones.clear();
+	
+	if (hasZones) {
+		// Find and parse zones data
+		for (int i = 0; i < v.getNumChildren(); i++) {
+			juce::ValueTree child = v.getChild(i);
+			if (child.getType().toString() == "Zones") {
+				// Process each zone
+				for (int j = 0; j < child.getNumChildren(); j++) {
+					juce::ValueTree zoneNode = child.getChild(j);
+					if (zoneNode.getType().toString() == "Zone") {
+						SampleZone zone;
+						zone.startNote = zoneNode.getProperty("startNote", 60);
+						zone.endNote = zoneNode.getProperty("endNote", 60);
+						zone.velLow = zoneNode.getProperty("velLow", 1);
+						zone.velHigh = zoneNode.getProperty("velHigh", 127);
+						zone.note = zoneNode.getProperty("note", 60);
+						zone.name = zoneNode.getProperty("name", "").toString();
+						zone.audioFile = juce::File(zoneNode.getProperty("audioFile", "").toString());
+						
+						bool hasAudio = zoneNode.getProperty("hasAudio", false);
+						if (hasAudio && zone.audioFile.exists()) {
+							// Create and configure sampler
+							zone.sampler = std::make_unique<Sampler>(sampleRate, bufferSize);
+							zone.sampler->loadSample(zone.audioFile);
+							zone.sampler->setLoop(zoneNode.getProperty("loop", true));
+							zone.sampler->setReverse(zoneNode.getProperty("reverse", false));
+							zone.sampler->setPitch(zoneNode.getProperty("pitch", 1.0f));
+							zone.sampler->setStartPosition(static_cast<int64_t>(zoneNode.getProperty("loopStart", 0)));
+							zone.sampler->setEndPosition(static_cast<int64_t>(zoneNode.getProperty("loopEnd", 0)));
+							
+							// Set amplitude envelope parameters
+							juce::ADSR::Parameters ampParams;
+							ampParams.attack = zoneNode.getProperty("amp_attack", 0.01f);
+							ampParams.decay = zoneNode.getProperty("amp_decay", 0.1f);
+							ampParams.sustain = zoneNode.getProperty("amp_sustain", 1.0f);
+							ampParams.release = zoneNode.getProperty("amp_release", 0.1f);
+							zone.sampler->getAmpEnvelope()->setParameters(ampParams);
+							
+							// Set filter envelope parameters  
+							juce::ADSR::Parameters filterParams;
+							filterParams.attack = zoneNode.getProperty("filter_attack", 0.01f);
+							filterParams.decay = zoneNode.getProperty("filter_decay", 0.1f);
+							filterParams.sustain = zoneNode.getProperty("filter_sustain", 1.0f);
+							filterParams.release = zoneNode.getProperty("filter_release", 0.1f);
+							zone.sampler->getFilterEnvelope()->setParameters(filterParams);
+							
+							zone.sampler->play();
+						}
+						
+						loadedZones.push_back(std::move(zone));
+					}
+				}
+				break; // Found zones, no need to continue
+			}
+		}
+		
+		juce::Logger::writeToLog("Loaded " + juce::String(loadedZones.size()) + " zones.");
+	}
 
+	currentFile = file;
+	hasLoadedZoneData = hasZones;
+	
 	saveSettings(currentFile.getParentDirectory().getFullPathName());
 }

@@ -53,6 +53,7 @@ public:
     void onZoneAdded(int index, const SampleZone& zone);
     void onZoneRemoved(int index);
     void onSelectionChanged(int index);
+    void loadZonesFromProcessor();
 
     std::unique_ptr<CustomKeyboard> keyboard;
     std::unique_ptr <KeyboardMappingEditor> mappingEditor = nullptr;
