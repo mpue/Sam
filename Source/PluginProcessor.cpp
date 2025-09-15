@@ -51,14 +51,40 @@ const juce::String SamAudioProcessor::getName() const
 
 void SamAudioProcessor::handleNoteOn(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity)
 {
+	currentTimeStamp++;
+
+	// Count active voices
+	int activeVoices = 0;
+	for (int i = 0; i < 128; i++) {
+		if (voiceInfo[i].isActive) {
+			activeVoices++;
+		}
+	}
+
+	// Voice stealing if too many voices
+	if (activeVoices >= maxPolyphony) {
+		int voiceToSteal = findOldestVoice();
+		if (voiceToSteal >= 0) {
+			stealVoice(voiceToSteal, midiNoteNumber, velocity);
+			return;
+		}
+	}
+
+	// Apply velocity sensitivity
+	float adjustedVelocity = std::pow(velocity, velocitySensitivity.load());
+	adjustedVelocity = juce::jlimit(0.0f, 1.0f, adjustedVelocity);
+
+	// Update voice info
+	voiceInfo[midiNoteNumber] = { midiNoteNumber, adjustedVelocity, currentTimeStamp, true };
+
 	if (samplers[midiNoteNumber] != nullptr) {
 		if (numVoices == 0) {
 			samplers[midiNoteNumber]->getFilterEnvelope()->noteOn();
 		}
 
 		numVoices++;
-		samplers[midiNoteNumber]->getAmpEnvelope()->noteOn(); //(m.getVelocity());
-		samplers[midiNoteNumber]->setVolume(velocity);
+		samplers[midiNoteNumber]->getAmpEnvelope()->noteOn();
+		samplers[midiNoteNumber]->setVolume(adjustedVelocity);
 		samplers[midiNoteNumber]->setCurrentSample(samplers[midiNoteNumber]->getStartPosition());
 		samplers[midiNoteNumber]->play();
 		voices[midiNoteNumber] = true;
@@ -67,29 +93,29 @@ void SamAudioProcessor::handleNoteOn(juce::MidiKeyboardState* source, int midiCh
 		if (keyEditor == nullptr) {
 			return;
 		}
-		int note = keyEditor->findZoneForNoteAndVelocity(midiNoteNumber, (int)(velocity*127));
-		Logger::getCurrentLogger()->writeToLog("NoteOff : Zone for note " + String(midiNoteNumber) + " : " + String(note));
-		if (note >= 0) {
 
-			SampleZone* zone =  keyEditor->getZone(note);
+		int note = keyEditor->findZoneForNoteAndVelocity(midiNoteNumber, (int)(adjustedVelocity * 127));
+		Logger::getCurrentLogger()->writeToLog("NoteOn : Zone for note " + String(midiNoteNumber) + " : " + String(note));
+
+		if (note >= 0) {
+			SampleZone* zone = keyEditor->getZone(note);
 			Sampler* sampler = zone->sampler.get();
 			sampler->getFilterEnvelope()->noteOn();
-
-			sampler->getAmpEnvelope()->noteOn(); //(m.getVelocity());
-			sampler->setVolume(velocity);
+			sampler->getAmpEnvelope()->noteOn();
+			sampler->setVolume(adjustedVelocity);
 			sampler->setCurrentSample(0);
 			sampler->play();
 			voices[midiNoteNumber] = true;
-
 		}
 	}
-	numVoices++;
 
-	// state.noteOn(midiChannel, midiNoteNumber, velocity / 128);
+	numVoices++;
 }
 
 void SamAudioProcessor::handleNoteOff(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity)
 {
+	// Update voice info
+	voiceInfo[midiNoteNumber].isActive = false;
 
 	if (samplers[midiNoteNumber] != nullptr) {
 		samplers[midiNoteNumber]->getFilterEnvelope()->noteOff();
@@ -100,24 +126,23 @@ void SamAudioProcessor::handleNoteOff(juce::MidiKeyboardState* source, int midiC
 		if (keyEditor == nullptr) {
 			return;
 		}
+
 		std::vector<int> zoneIndices = keyEditor->findAllZonesForNote(midiNoteNumber);
-		
+
 		for (int i = 0; i < zoneIndices.size(); i++) {
-			int zoneIndex = zoneIndices[i];		
+			int zoneIndex = zoneIndices[i];
 			SampleZone* zone = keyEditor->getZone(zoneIndex);
 			Sampler* sampler = zone->sampler.get();
 			sampler->getFilterEnvelope()->noteOff();
 			sampler->getAmpEnvelope()->noteOff();
-
 		}
 	}
-	// state.noteOff(midiChannel, midiNoteNumber, velocity / 128);
+
 	if (numVoices > 0) {
 		numVoices--;
 	}
 	voices[midiNoteNumber] = false;
 }
-
 bool SamAudioProcessor::acceptsMidi() const
 {
 #if JucePlugin_WantsMidiInput
@@ -177,15 +202,14 @@ void SamAudioProcessor::changeProgramName(int index, const juce::String& newName
 //==============================================================================
 void SamAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-	// Use this method as the place to do any pre-playback
-	// initialisation that you need..
 	bufferSize = samplesPerBlock;
 	this->sampleRate = sampleRate;
 
 	for (int i = 0; i < 128; i++) {
-		// samplers[i] = nullptr;
 		voices[i] = false;
+		voiceInfo[i] = { -1, 0.0f, 0, false };
 	}
+
 	tempBuffer = std::make_unique<juce::AudioSampleBuffer>(2, samplesPerBlock);
 
 	interpolatorLeft = std::make_unique<CatmullRomInterpolator>();
@@ -194,22 +218,65 @@ void SamAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	lpfLeftStage1 = std::make_unique<MultimodeFilter>();
 	lpfRightStage1 = std::make_unique<MultimodeFilter>();
 
-
 	lpfLeftStage1->coefficients(sampleRate, cutoff, resonance);
 	lpfRightStage1->coefficients(sampleRate, cutoff, resonance);
+
 	defaultSampler = std::make_unique<Sampler>(sampleRate, bufferSize);
-	
-	if (currentFile.existsAsFile())
-	{
+
+	// Initialize compressor
+	compressor = std::make_unique<juce::dsp::Compressor<float>>();
+	compressor->setRatio(4.0f);
+	compressor->setThreshold(-12.0f);
+	compressor->setAttack(1.0f);
+	compressor->setRelease(50.0f);
+
+	// Initialize limiter
+	limiter = std::make_unique<juce::dsp::Limiter<float>>();
+	limiter->setThreshold(-0.1f);
+	limiter->setRelease(5.0f);
+
+	// Prepare DSP components
+	juce::dsp::ProcessSpec spec;
+	spec.sampleRate = sampleRate;
+	spec.maximumBlockSize = samplesPerBlock;
+	spec.numChannels = 2;
+
+	compressor->prepare(spec);
+	limiter->prepare(spec);
+
+	if (currentFile.existsAsFile()) {
 		loadFile(currentFile);
 		loaded = true;
 	}
 
 	hardLimiter = std::make_unique<HardLimiter>();
-	hardLimiter->setThreshold(0.75f);
-
+	hardLimiter->setThreshold(0.85f); // Lower threshold for safety
 }
 
+// Helper methods for voice management
+int SamAudioProcessor::findOldestVoice()
+{
+	int oldestVoice = -1;
+	int64_t oldestTime = std::numeric_limits<int64_t>::max();
+
+	for (int i = 0; i < 128; i++) {
+		if (voiceInfo[i].isActive && voiceInfo[i].startTime < oldestTime) {
+			oldestTime = voiceInfo[i].startTime;
+			oldestVoice = i;
+		}
+	}
+
+	return oldestVoice;
+}
+
+void SamAudioProcessor::stealVoice(int noteToSteal, int newNote, float velocity)
+{
+	// Stop the old voice
+	handleNoteOff(nullptr, 1, noteToSteal, 0.0f);
+
+	// Start the new voice
+	handleNoteOn(nullptr, 1, newNote, velocity);
+}
 void SamAudioProcessor::releaseResources()
 {
 	// When playback stops, you can use this as an opportunity to free up any
@@ -252,12 +319,7 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 		recorder.writeAudioData(buffer);
 	}
 	else {
-		// In case we have more outputs than inputs, this code clears any output
-		// channels that didn't contain input data, (because these aren't
-		// guaranteed to be empty - they may contain garbage).
-		// This is here to avoid people getting screaming feedback
-		// when they first compile a plugin, but obviously you don't need to keep
-		// this code if your algorithm always overwrites all the output channels.
+		// Clear output channels
 		for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
 			buffer.clear(i, 0, buffer.getNumSamples());
 
@@ -266,68 +328,114 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 		const float* leftIn = buffer.getReadPointer(0);
 		const float* righIn = buffer.getReadPointer(1);
 
+		// Count active voices for automatic gain reduction
+		int activeVoices = 0;
 		for (int j = 0; j < 128; j++) {
-			if (samplers[j] != nullptr) {
-
-				for (int i = 0; i < bufferSize; i++) {
-
-					envValue = samplers[j]->getAmpEnvelope()->getNextSample();
-					samplers[j]->nextSample();
-
-					float left = samplers[j]->getCurrentSample(0) * envValue;
-					float right = samplers[j]->getCurrentSample(1) * envValue;
-
-					buffer.addSample(0, i, left);
-					buffer.addSample(1, i, right);
-
-				}
-				if (samplers[j]->getFilterEnvelope() != nullptr) {
-					float f = cutoff + (samplers[j]->getFilterEnvelope()->getNextSample() * amount * (22000 - cutoff));
-					if (f < 0) {
-						f = 0;
-					}
-					lpfLeftStage1->coefficients(sampleRate, f, resonance);
-				}
-
+			if (samplers[j] != nullptr && voices[j]) {
+				activeVoices++;
 			}
-
 		}
 
 		if (keyEditor != nullptr) {
-			for (int j = 0; j < keyEditor->getNumZones(); j++){
+			for (int j = 0; j < keyEditor->getNumZones(); j++) {
 				SampleZone* zone = keyEditor->getZone(j);
-				if (zone->sampler != nullptr) {
+				if (zone->sampler != nullptr && zone->sampler->isPlaying()) {
+					activeVoices++;
+				}
+			}
+		}
+
+		// Calculate automatic gain reduction based on active voices
+		float voiceGainReduction = 1.0f;
+		if (activeVoices > 1) {
+			// Reduce gain logarithmically with more voices
+			voiceGainReduction = 1.0f / std::sqrt(static_cast<float>(activeVoices));
+			// Cap minimum gain to prevent complete silence
+			voiceGainReduction = std::max(voiceGainReduction, 0.1f);
+		}
+
+		// Master volume control (add this as a parameter)
+		float masterVolume = 0.5f; // Reduce overall level
+		float finalGain = masterVolume * voiceGainReduction;
+
+		// Process legacy samplers
+		for (int j = 0; j < 128; j++) {
+			if (samplers[j] != nullptr && voices[j]) {
+				for (int i = 0; i < bufferSize; i++) {
+					envValue = samplers[j]->getAmpEnvelope()->getNextSample();
+					samplers[j]->nextSample();
+
+					float left = samplers[j]->getCurrentSample(0) * envValue * finalGain;
+					float right = samplers[j]->getCurrentSample(1) * envValue * finalGain;
+
+					// Soft clipping to prevent hard clipping
+					left = std::tanh(left * 0.8f);
+					right = std::tanh(right * 0.8f);
+
+					buffer.addSample(0, i, left);
+					buffer.addSample(1, i, right);
+				}
+
+				if (samplers[j]->getFilterEnvelope() != nullptr) {
+					float f = cutoff + (samplers[j]->getFilterEnvelope()->getNextSample() * amount * (22000 - cutoff));
+					f = std::max(0.0f, std::min(f, 22000.0f)); // Clamp frequency
+					lpfLeftStage1->coefficients(sampleRate, f, resonance);
+				}
+			}
+		}
+
+		// Process zone-based samplers
+		if (keyEditor != nullptr) {
+			for (int j = 0; j < keyEditor->getNumZones(); j++) {
+				SampleZone* zone = keyEditor->getZone(j);
+				if (zone->sampler != nullptr && zone->sampler->isPlaying()) {
 					for (int i = 0; i < bufferSize; i++) {
 						envValue = zone->sampler->getAmpEnvelope()->getNextSample();
 						zone->sampler->nextSample();
-						float left = zone->sampler->getCurrentSample(0) * envValue;
-						float right = zone->sampler->getCurrentSample(1) * envValue;
+
+						float left = zone->sampler->getCurrentSample(0) * envValue * finalGain;
+						float right = zone->sampler->getCurrentSample(1) * envValue * finalGain;
+
+						// Soft clipping
+						left = std::tanh(left * 0.8f);
+						right = std::tanh(right * 0.8f);
+
 						buffer.addSample(0, i, left);
 						buffer.addSample(1, i, right);
 					}
+
 					if (zone->sampler->getFilterEnvelope() != nullptr) {
 						float f = cutoff + (zone->sampler->getFilterEnvelope()->getNextSample() * amount * (22000 - cutoff));
-						if (f < 0) {
-							f = 0;
-						}
+						f = std::max(0.0f, std::min(f, 22000.0f));
 						lpfLeftStage1->coefficients(sampleRate, f, resonance);
 					}
 				}
-			}			
+			}
 		}
+
 		currentSample = (currentSample + bufferSize) % buffer.getNumSamples();
 		magnitude = buffer.getMagnitude(currentSample, bufferSize);
 
+		// Apply filter
 		lpfLeftStage1->processStereo(leftOut, rightOut, buffer.getNumSamples());
 
+		// Final limiting with adjusted threshold
+		hardLimiter->setThreshold(0.9f); // Increase threshold slightly
 		hardLimiter->processBlock(leftOut, buffer.getNumSamples());
+		hardLimiter->processBlock(rightOut, buffer.getNumSamples()); // Process right channel too!
 
+		// Peak limiting as safety net
+		for (int i = 0; i < buffer.getNumSamples(); i++) {
+			leftOut[i] = std::max(-0.95f, std::min(0.95f, leftOut[i]));
+			rightOut[i] = std::max(-0.95f, std::min(0.95f, rightOut[i]));
+		}
+
+		// MIDI processing (unchanged)
 		if (!events.empty()) {
 			Event* e = events.top();
 			events.pop();
 
 			if (e != nullptr && e->getType() == Event::GATE) {
-
 				if (e->getValue() > 0) {
 					midiMessages.addEvent(MidiMessage::noteOn(1, e->getNote(), (juce::uint8)e->getValue()), currentSample);
 				}
@@ -341,21 +449,16 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 		juce::MidiMessage m;
 		int time;
 
-		for (juce::MidiBuffer::Iterator i(midiMessages); i.getNextEvent(m, time);)
-		{
-			if (m.isNoteOn())
-			{
-				state.noteOn(m.getChannel(), m.getNoteNumber(),m.getVelocity()/128.0f);
+		for (juce::MidiBuffer::Iterator i(midiMessages); i.getNextEvent(m, time);) {
+			if (m.isNoteOn()) {
+				state.noteOn(m.getChannel(), m.getNoteNumber(), m.getVelocity() / 128.0f);
 			}
-			if (m.isNoteOff())
-			{
+			if (m.isNoteOff()) {
 				state.noteOff(m.getChannel(), m.getNoteNumber(), 0);
 			}
-			if (m.isAftertouch())
-			{
+			if (m.isAftertouch()) {
 			}
-			if (m.isPitchWheel())
-			{
+			if (m.isPitchWheel()) {
 			}
 			if (m.isController()) {
 				if (learn) {
@@ -363,10 +466,9 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 					learn = false;
 				}
 				else {
-
 					juce::Logger::getCurrentLogger()->writeToLog("controller " + juce::String(m.getControllerNumber()) + " value " + juce::String(m.getControllerValue()));
 
-				juce:Component* c = mappings.getMapping(m.getControllerNumber());
+					juce::Component* c = mappings.getMapping(m.getControllerNumber());
 
 					if (c != nullptr) {
 						if (c->getName() == "Cutoff") {
@@ -381,17 +483,12 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 							amount = (1.0f / 127.0f) * m.getControllerValue();
 							lpfLeftStage1->coefficients(sampleRate, cutoff, resonance);
 						}
-
 					}
 
 					// Modulation wheel
 					if (m.getControllerNumber() == 1) {
-
 					}
 				}
-			}
-			else {
-				//( Logger::getCurrentLogger()->writeToLog("Other message : " + String(m.getTimeStamp()));
 			}
 		}
 	}

@@ -126,12 +126,46 @@ public:
     
     bool hasZoneDataToLoad() const { return hasLoadedZoneData; }
 
+    void setMasterVolume(float volume) { masterVolume = juce::jlimit(0.0f, 1.0f, volume); }
+    float getMasterVolume() const { return masterVolume.load(); }
+
+    void setVelocitySensitivity(float sensitivity) { velocitySensitivity = juce::jlimit(0.0f, 2.0f, sensitivity); }
+    float getVelocitySensitivity() const { return velocitySensitivity.load(); }
+
+    void setMaxPolyphony(int voices) { maxPolyphony = juce::jlimit(1, 32, voices); }
+    int getMaxPolyphony() const { return maxPolyphony; }
 
 private:
+
+    int findOldestVoice(); // Helper method for voice stealing
+    void stealVoice(int noteToSteal, int newNote, float velocity);
+
     juce::File currentFile;
     float envValue = 0;
     std::unique_ptr<juce::AudioSampleBuffer> tempBuffer = nullptr;
     SamAudioProcessorEditor* editor = nullptr;
     //==============================================================================
+
+    // Voice management
+    int maxPolyphony = 16; // Maximum number of simultaneous voices
+    std::atomic<float> masterVolume{ 0.7f };
+    std::atomic<float> velocitySensitivity{ 1.0f };
+
+    // Compressor/Limiter
+    std::unique_ptr<juce::dsp::Compressor<float>> compressor;
+    std::unique_ptr<juce::dsp::Limiter<float>> limiter;
+
+    // Voice stealing for polyphony management
+    struct VoiceInfo {
+        int midiNote;
+        float velocity;
+        int64_t startTime;
+        bool isActive;
+    };
+
+    std::array<VoiceInfo, 128> voiceInfo;
+    int64_t currentTimeStamp = 0;
+
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamAudioProcessor)
 };
