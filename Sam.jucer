@@ -105,6 +105,7 @@
         <FILE id="oh9i7G" name="FractionalDelayBuffer.h" compile="0" resource="0"
               file="Source/AudioEngine/FractionalDelayBuffer.h"/>
         <FILE id="tPylMx" name="Generator.h" compile="0" resource="0" file="Source/AudioEngine/Generator.h"/>
+        <FILE id="lyBiB2" name="HardLimiter.h" compile="0" resource="0" file="Source/AudioEngine/HardLimiter.h"/>
         <FILE id="MQ525a" name="HighPassFilter.cpp" compile="1" resource="0"
               file="Source/AudioEngine/HighPassFilter.cpp"/>
         <FILE id="LOsVP8" name="HighPassFilter.h" compile="0" resource="0"

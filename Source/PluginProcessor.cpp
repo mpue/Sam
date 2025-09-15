@@ -205,6 +205,9 @@ void SamAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 		loaded = true;
 	}
 
+	hardLimiter = std::make_unique<HardLimiter>();
+	hardLimiter->setThreshold(0.75f);
+
 }
 
 void SamAudioProcessor::releaseResources()
@@ -316,6 +319,8 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 		magnitude = buffer.getMagnitude(currentSample, bufferSize);
 
 		lpfLeftStage1->processStereo(leftOut, rightOut, buffer.getNumSamples());
+
+		hardLimiter->processBlock(leftOut, buffer.getNumSamples());
 
 		if (!events.empty()) {
 			Event* e = events.top();

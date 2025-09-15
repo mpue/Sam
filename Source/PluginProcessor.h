@@ -16,6 +16,7 @@
 #include "ControllerMappings.h"
 #include "Event.h"
 #include "AudioEngine/AudioRecorder.h"
+#include "AudioEngine/HardLimiter.h"
 #include <stack>
 #include "UI/KeyboardMappingEditor.h"
 
@@ -97,9 +98,11 @@ public:
     ControllerMappings mappings;
     std::stack<Event*> events;
     std::unique_ptr<Sequencer> sequencer = nullptr;
+	std::unique_ptr<HardLimiter> hardLimiter = nullptr;
 
     AudioRecorder recorder;
     bool isRecording = false;
+
 
     void saveSettings(juce::String currentDirectory);
     juce::String loadSettings();
@@ -122,6 +125,7 @@ public:
     }
     
     bool hasZoneDataToLoad() const { return hasLoadedZoneData; }
+
 
 private:
     juce::File currentFile;
