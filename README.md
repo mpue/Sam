@@ -7,11 +7,15 @@ It offers an intuitive interface, deep MIDI integration, and flexible zone and e
 
 ![SAM Screenshot](images/sam_screenshot.png)
 
+Multisample Editor
+
+![SAM Screenshot](images/sam_screenshot_2.png)
+
 ---
 
 ## Features
 
-
+- **Multidample Mapping and Editing**
 - **Record from audio in**
 - **MIDI Keyboard Integration**  
   Trigger and play samples directly with any MIDI controller.

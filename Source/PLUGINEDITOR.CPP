@@ -91,7 +91,7 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 
 	modViewButton = std::make_unique<juce::TextButton>("Modulation");
 	modViewButton->setSize(140, 20);
-	modViewButton->setTopLeftPosition(455, 395);
+	modViewButton->setTopLeftPosition(455,395);
 	addAndMakeVisible(modViewButton.get());
 	modViewButton->setEnabled(false);
 
@@ -113,6 +113,19 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	noteLabel->setSize(100, 25);
 	noteLabel->setTopLeftPosition(10, 255);
 	addAndMakeVisible(noteLabel.get());
+
+	masterGainSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::RotaryVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox);
+	masterGainSlider->setSize(48, 48);
+	masterGainSlider->setTopLeftPosition(620, 530);
+	masterGainSlider->setRange(0.0, 1.0);
+	masterGainSlider->setValue(0.7); // Default value
+	masterGainSlider->setName("Master Gain");
+	addAndMakeVisible(masterGainSlider.get());
+
+	masterGainLabel = std::make_unique<juce::Label>("Master Gain", "Master");
+	masterGainLabel->setSize(100, 25);
+	masterGainLabel->setTopLeftPosition(615, 580);
+	addAndMakeVisible(masterGainLabel.get());
 
 	cutoffSlider = std::make_unique<juce::Slider>(juce::Slider::SliderStyle::RotaryVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox);
 	cutoffSlider->setSize(48, 48);
@@ -188,6 +201,7 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 	newSetButton->addListener(this);
 	loopButton->addListener(this);
 	reverseButton->addListener(this);
+	masterGainSlider->addListener(this);
 	cutoffSlider->addListener(this);
 	resoSlider->addListener(this);
 	amtSlider->addListener(this);
@@ -226,10 +240,12 @@ SamAudioProcessorEditor::~SamAudioProcessorEditor()
 	resoSlider = nullptr;
 	amtSlider = nullptr;
 	driveSlider = nullptr;
+	masterGainSlider = nullptr;
 	cutoffLabel = nullptr;
 	resoLabel = nullptr;
 	amtLabel = nullptr;
 	driveLabel = nullptr;
+	masterGainLabel = nullptr;
 	vuMeter = nullptr;
 	propertyViewLeft = nullptr;
 	propertyViewRight = nullptr;
@@ -266,6 +282,30 @@ void SamAudioProcessorEditor::paint(juce::Graphics& g)
 
 	g.setColour(juce::Colours::orange);
 
+	// Draw sample set image at the top center-left if loaded
+	if (sampleSetImage.isValid()) {
+		// Position: top center-left area (around x=350, y=20)
+		int imageX = 250;
+		int imageY = 40;
+		int maxWidth = 300;  // Maximum width for the image
+		int maxHeight = 100; // Maximum height for the image
+		
+		// Get original image dimensions
+		int originalWidth = sampleSetImage.getWidth();
+		int originalHeight = sampleSetImage.getHeight();
+		
+		// Calculate scaling to fit within maximum dimensions while maintaining aspect ratio
+		float scaleX = static_cast<float>(maxWidth) / originalWidth;
+		float scaleY = static_cast<float>(maxHeight) / originalHeight;
+		float scale = std::min(scaleX, scaleY);
+		
+		int scaledWidth = static_cast<int>(originalWidth * scale);
+		int scaledHeight = static_cast<int>(originalHeight * scale);
+		
+		// Draw the scaled image
+		g.drawImage(sampleSetImage, imageX, imageY, scaledWidth, scaledHeight, 
+		           0, 0, originalWidth, originalHeight);
+	}
 
 }
 
@@ -448,6 +488,9 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 			// Load zone data if available
 			loadZonesFromProcessor();
 			
+			// Load sample set image if available
+			loadSampleSetImage(file);
+			
 			for (int i = 0; i < 128; i++) {
 				if (audioProcessor.samplers[i] != nullptr) {
 					keyboard->setNoteColour(i, juce::Colours::green);
@@ -466,6 +509,10 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 		}
 		sampleEditor->setSampler(nullptr);
 		sampleEditor->repaint();
+		
+		// Clear sample set image
+		sampleSetImage = juce::Image();
+		repaint();
 	}
 	else if (button == loopButton.get())
 	{
@@ -516,6 +563,8 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 		filterEnvelope->setVisible(true);
 		cutoffLabel->setVisible(true);
 		cutoffSlider->setVisible(true);
+		masterGainLabel->setVisible(true);
+		masterGainSlider->setVisible(true);
 		amtLabel->setVisible(true);
 		amtSlider->setVisible(true);
 		resoLabel->setVisible(true);
@@ -545,6 +594,8 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 		filterEnvelope->setVisible(false);
 		cutoffLabel->setVisible(false);
 		cutoffSlider->setVisible(false);
+		masterGainLabel->setVisible(false);
+		masterGainSlider->setVisible(false);
 		amtLabel->setVisible(false);
 		amtSlider->setVisible(false);
 		resoLabel->setVisible(false);
@@ -725,6 +776,7 @@ void SamAudioProcessorEditor::timerCallback()
 	cutoffSlider->setValue(audioProcessor.cutoff);
 	resoSlider->setValue(audioProcessor.resonance);
 	amtSlider->setValue(audioProcessor.amount);
+	masterGainSlider->setValue(audioProcessor.getMasterVolume());
 	vuMeter->setMagnitude(audioProcessor.magnitude);;
 	repaint();
 
@@ -742,6 +794,9 @@ void SamAudioProcessorEditor::changeListenerCallback(ChangeBroadcaster* source)
 			
 			// Load zone data if available
 			loadZonesFromProcessor();
+			
+			// Load sample set image if available
+			loadSampleSetImage(efb->getSelectedFile());
 
 		}
 		else {
@@ -777,6 +832,10 @@ void SamAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
 {
 	if (slider == cutoffSlider.get()) {
 		audioProcessor.cutoff = cutoffSlider->getValue();
+	}
+	else if (slider == masterGainSlider.get()) {
+		audioProcessor.setMasterVolume(masterGainSlider->getValue());
+		juce::Logger::writeToLog("Set master gain to " + juce::String(masterGainSlider->getValue()));
 	}
 	else if (slider == resoSlider.get()) {
 		audioProcessor.resonance = resoSlider->getValue();
@@ -856,6 +915,94 @@ void SamAudioProcessorEditor::loadZonesFromProcessor()
 	
 	juce::Logger::writeToLog("Loaded " + juce::String(zones.size()) + " zones into editor.");
 }
+
+void SamAudioProcessorEditor::loadSampleSetImage(const juce::File& setFile)
+{
+	// Clear any existing image first
+	sampleSetImage = juce::Image();
+	
+	if (!setFile.exists()) {
+		juce::Logger::writeToLog("Set file does not exist, cannot load sample set image");
+		return;
+	}
+	
+	// Get the parent directory of the set file
+	juce::File setDirectory = setFile.getParentDirectory();
+	
+	// Look for a "samples" subdirectory
+	juce::File samplesDir = setDirectory.getChildFile("samples");
+	
+	if (!samplesDir.exists() || !samplesDir.isDirectory()) {
+		juce::Logger::writeToLog("No samples subdirectory found at: " + samplesDir.getFullPathName());
+		return;
+	}
+	
+	// Look for "samset.png" in the samples directory
+	juce::File imageFile = samplesDir.getChildFile("samset.png");
+	
+	if (!imageFile.exists()) {
+		juce::Logger::writeToLog("No samset.png found at: " + imageFile.getFullPathName());
+		return;
+	}
+	
+	// Try to load the image
+	sampleSetImage = juce::ImageCache::getFromFile(imageFile);
+	
+	if (sampleSetImage.isValid()) {
+		juce::Logger::writeToLog("Successfully loaded sample set image: " + imageFile.getFullPathName());
+		repaint(); // Trigger a repaint to show the new image
+	} else {
+		juce::Logger::writeToLog("Failed to load sample set image: " + imageFile.getFullPathName());
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

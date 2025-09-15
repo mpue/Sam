@@ -354,9 +354,9 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 			voiceGainReduction = std::max(voiceGainReduction, 0.1f);
 		}
 
-		// Master volume control (add this as a parameter)
-		float masterVolume = 0.5f; // Reduce overall level
-		float finalGain = masterVolume * voiceGainReduction;
+		// Master volume control - using the actual master volume setting
+		float masterVolumeValue = masterVolume.load();
+		float finalGain = masterVolumeValue; // * voiceGainReduction;
 
 		// Process legacy samplers
 		for (int j = 0; j < 128; j++) {
@@ -368,9 +368,9 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 					float left = samplers[j]->getCurrentSample(0) * envValue * finalGain;
 					float right = samplers[j]->getCurrentSample(1) * envValue * finalGain;
 
-					// Soft clipping to prevent hard clipping
-					left = std::tanh(left * 0.8f);
-					right = std::tanh(right * 0.8f);
+					//// Soft clipping to prevent hard clipping
+					//left = std::tanh(left * 0.8f);
+					//right = std::tanh(right * 0.8f);
 
 					buffer.addSample(0, i, left);
 					buffer.addSample(1, i, right);
@@ -396,9 +396,9 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 						float left = zone->sampler->getCurrentSample(0) * envValue * finalGain;
 						float right = zone->sampler->getCurrentSample(1) * envValue * finalGain;
 
-						// Soft clipping
-						left = std::tanh(left * 0.8f);
-						right = std::tanh(right * 0.8f);
+						//// Soft clipping
+						//left = std::tanh(left * 0.8f);
+						//right = std::tanh(right * 0.8f);
 
 						buffer.addSample(0, i, left);
 						buffer.addSample(1, i, right);
@@ -419,16 +419,16 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 		// Apply filter
 		lpfLeftStage1->processStereo(leftOut, rightOut, buffer.getNumSamples());
 
-		// Final limiting with adjusted threshold
-		hardLimiter->setThreshold(0.9f); // Increase threshold slightly
-		hardLimiter->processBlock(leftOut, buffer.getNumSamples());
-		hardLimiter->processBlock(rightOut, buffer.getNumSamples()); // Process right channel too!
+		//// Final limiting with adjusted threshold
+		//hardLimiter->setThreshold(0.9f); // Increase threshold slightly
+		//hardLimiter->processBlock(leftOut, buffer.getNumSamples());
+		//hardLimiter->processBlock(rightOut, buffer.getNumSamples()); // Process right channel too!
 
 		// Peak limiting as safety net
-		for (int i = 0; i < buffer.getNumSamples(); i++) {
-			leftOut[i] = std::max(-0.95f, std::min(0.95f, leftOut[i]));
-			rightOut[i] = std::max(-0.95f, std::min(0.95f, rightOut[i]));
-		}
+		//for (int i = 0; i < buffer.getNumSamples(); i++) {
+		//	leftOut[i] = std::max(-0.95f, std::min(0.95f, leftOut[i]));
+		//	rightOut[i] = std::max(-0.95f, std::min(0.95f, rightOut[i]));
+		//}
 
 		// MIDI processing (unchanged)
 		if (!events.empty()) {

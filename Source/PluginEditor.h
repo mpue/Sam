@@ -54,6 +54,7 @@ public:
     void onZoneRemoved(int index);
     void onSelectionChanged(int index);
     void loadZonesFromProcessor();
+    void loadSampleSetImage(const juce::File& setFile);  // Load sample set image
 
     std::unique_ptr<CustomKeyboard> keyboard;
     std::unique_ptr <KeyboardMappingEditor> mappingEditor = nullptr;
@@ -70,10 +71,12 @@ public:
     std::unique_ptr <juce::Slider> resoSlider = nullptr;
     std::unique_ptr <juce::Slider> amtSlider = nullptr;
     std::unique_ptr <juce::Slider> driveSlider = nullptr;
+    std::unique_ptr <juce::Slider> masterGainSlider = nullptr;
     std::unique_ptr <juce::Label> cutoffLabel = nullptr;
     std::unique_ptr <juce::Label> resoLabel = nullptr;
     std::unique_ptr <juce::Label> amtLabel = nullptr;
     std::unique_ptr <juce::Label> driveLabel = nullptr;
+    std::unique_ptr <juce::Label> masterGainLabel = nullptr;
     std::unique_ptr <VUMeter> vuMeter = nullptr;
     std::unique_ptr <PropertyView> propertyViewLeft = nullptr;
     std::unique_ptr <PropertyView> propertyViewRight = nullptr;
@@ -89,6 +92,7 @@ public:
     UIMode currentMode = UIMode::Main;
     std::vector<SampleZone> zones;
     int currentSelectedZoneIndex = -1;  // Track currently selected zone
+    juce::Image sampleSetImage;  // Store the loaded sample set image
 
 private:
 
