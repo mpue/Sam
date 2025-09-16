@@ -224,6 +224,10 @@ SamAudioProcessorEditor::SamAudioProcessorEditor(SamAudioProcessor& p)
 
 SamAudioProcessorEditor::~SamAudioProcessorEditor()
 {	
+	if (isTimerRunning()) {
+		sampleEditor->stopTimer();
+		stopTimer();
+	}	
 	audioProcessor.state.removeListener(this);
 	setLookAndFeel(nullptr);
 	keyboard = nullptr;
@@ -317,10 +321,6 @@ void SamAudioProcessorEditor::resized()
 
 void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int midiChannel, int midiNoteNumber, float velocity)
 {
-	if (!isTimerRunning()) {
-		startTimerHz(50);
-		sampleEditor->startTimerHz(50);
-	}
 	audioProcessor.currentSampleIndex = midiNoteNumber;
 	std::function<void(void)> changeLambda =
 		[=]() {
@@ -767,15 +767,12 @@ void SamAudioProcessorEditor::onSelectionChanged(int index)
 }
 
 void SamAudioProcessorEditor::timerCallback()
-{
-	if (audioProcessor.samplers[audioProcessor.currentSampleIndex] == nullptr) {
-		return;
-	}
+{	
 	cutoffSlider->setValue(audioProcessor.cutoff);
 	resoSlider->setValue(audioProcessor.resonance);
 	amtSlider->setValue(audioProcessor.amount);
-	masterGainSlider->setValue(audioProcessor.getMasterVolume());
-	vuMeter->setMagnitude(audioProcessor.magnitude);;
+	masterGainSlider->setValue(audioProcessor.getMasterVolume());	
+	vuMeter->setMagnitude(audioProcessor.magnitude);;	
 	repaint();
 
 }
@@ -891,6 +888,11 @@ void SamAudioProcessorEditor::mouseDown(const MouseEvent& event)
 //==============================================================================
 void SamAudioProcessorEditor::loadZonesFromProcessor()
 {
+	if (isTimerRunning()) {
+		stopTimer();
+		sampleEditor->stopTimer();
+	}
+
 	if (!audioProcessor.hasZoneDataToLoad()) {
 		return;
 	}
@@ -903,6 +905,11 @@ void SamAudioProcessorEditor::loadZonesFromProcessor()
 		mappingEditor->repaint();
 	}
 		
+	if (!isTimerRunning()) {
+		startTimerHz(50);
+		sampleEditor->startTimerHz(50);
+	}
+
 }
 
 void SamAudioProcessorEditor::loadSampleSetImage(const juce::File& setFile)
