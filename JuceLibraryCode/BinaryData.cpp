@@ -60932,7 +60932,7 @@ const char* getNamedResource (const char* resourceNameUTF8, int& numBytes)
         case 0xd40842c1:  numBytes = 18394; return oscillator_sine_48_png;
         case 0x176f91f1:  numBytes = 17545; return oscillator_square_48_png;
         case 0x6f1f95c9:  numBytes = 19594; return sam_png;
-        case 0x7251501d:  numBytes = 1599347; return sam2_png;
+        case 0x7251501d:  numBytes = 1600083; return sam2_png;
         case 0x12db7cdb:  numBytes = 836279; return sam2_mappings_png;
         case 0x5a8b5862:  numBytes = 30329; return vintage_vu_png;
         default: break;

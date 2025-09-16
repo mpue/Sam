@@ -43,10 +43,10 @@
         <FILE id="DbnL0m" name="Cell.h" compile="0" resource="0" file="Source/UI/Cell.h"/>
         <FILE id="hnSkWP" name="CustomKeyboard.h" compile="0" resource="0"
               file="Source/UI/CustomKeyboard.h"/>
-        <FILE id="Inffp3" name="CustomLookAndFeel.cpp" compile="1" resource="0"
-              file="Source/UI/CustomLookAndFeel.cpp"/>
         <FILE id="NEOahB" name="CustomLookAndFeel.h" compile="0" resource="0"
               file="Source/UI/CustomLookAndFeel.h"/>
+        <FILE id="Inffp3" name="CustomLookAndFeel.cpp" compile="1" resource="0"
+              file="Source/UI/CustomLookAndFeel.cpp"/>
         <FILE id="HLVp4R" name="EnvelopePanel.cpp" compile="1" resource="0"
               file="Source/UI/EnvelopePanel.cpp"/>
         <FILE id="IEMetX" name="EnvelopePanel.h" compile="0" resource="0" file="Source/UI/EnvelopePanel.h"/>
@@ -54,6 +54,8 @@
               file="Source/UI/ExtendedFileBrowser.cpp"/>
         <FILE id="GUFZHh" name="ExtendedFileBrowser.h" compile="0" resource="0"
               file="Source/UI/ExtendedFileBrowser.h"/>
+        <FILE id="LjJ4hR" name="FXPanel.cpp" compile="1" resource="0" file="Source/UI/FXPanel.cpp"/>
+        <FILE id="CF6wzj" name="FXPanel.h" compile="0" resource="0" file="Source/UI/FXPanel.h"/>
         <FILE id="choiiU" name="GraphicalEnvelope.cpp" compile="1" resource="0"
               file="Source/UI/GraphicalEnvelope.cpp"/>
         <FILE id="FFg233" name="GraphicalEnvelope.h" compile="0" resource="0"
@@ -95,6 +97,10 @@
         <FILE id="cVOnM2" name="Distortion.h" compile="0" resource="0" file="Source/AudioEngine/Distortion.h"/>
         <FILE id="CE4le5" name="DummyModulator.h" compile="0" resource="0"
               file="Source/AudioEngine/DummyModulator.h"/>
+        <FILE id="GJd5fm" name="EffectsProcessor.cpp" compile="1" resource="0"
+              file="Source/AudioEngine/EffectsProcessor.cpp"/>
+        <FILE id="eUgGqJ" name="EffectsProcessor.h" compile="0" resource="0"
+              file="Source/AudioEngine/EffectsProcessor.h"/>
         <FILE id="cDTKRX" name="Event.cpp" compile="1" resource="0" file="Source/AudioEngine/Event.cpp"/>
         <FILE id="yJM4xY" name="Event.h" compile="0" resource="0" file="Source/AudioEngine/Event.h"/>
         <FILE id="GrLEf5" name="EventListener.h" compile="0" resource="0" file="Source/AudioEngine/EventListener.h"/>

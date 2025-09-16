@@ -340,6 +340,10 @@ void SamAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	compressor->prepare(spec);
 	limiter->prepare(spec);
 
+	// Initialize effects processor
+	effectsProcessor = std::make_unique<EffectsProcessor>();
+	effectsProcessor->prepareToPlay(sampleRate, samplesPerBlock);
+
 	if (!loaded && currentFile.existsAsFile()) {
 		loadFile(currentFile);		
 		loaded = true;
@@ -513,6 +517,12 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 
 		// Apply filter
 		lpfLeftStage1->processStereo(leftOut, rightOut, buffer.getNumSamples());
+
+		// Process effects
+		if (effectsProcessor)
+		{
+			effectsProcessor->processBlock(buffer, 2, buffer.getNumSamples());
+		}
 
 		//// Final limiting with adjusted threshold
 		//hardLimiter->setThreshold(0.9f); // Increase threshold slightly

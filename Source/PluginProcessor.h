@@ -17,6 +17,7 @@
 #include "Event.h"
 #include "AudioEngine/AudioRecorder.h"
 #include "AudioEngine/HardLimiter.h"
+#include "AudioEngine/EffectsProcessor.h"
 #include <stack>
 #include "UI/KeyboardMappingEditor.h"
 
@@ -161,6 +162,10 @@ public:
     }   
 	std::vector<SampleZone>& getZones() noexcept { return zones; }
 
+    //==============================================================================
+    // Effects processor access
+    EffectsProcessor* getEffectsProcessor() { return effectsProcessor.get(); }
+
 private:
 
     int findOldestVoice(); // Helper method for voice stealing
@@ -194,6 +199,8 @@ private:
 
 	std::vector<SampleZone> zones;
 
+    // Effects processor
+    std::unique_ptr<EffectsProcessor> effectsProcessor;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamAudioProcessor)
 };

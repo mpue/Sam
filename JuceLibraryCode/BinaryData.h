@@ -48,7 +48,7 @@ namespace BinaryData
     const int            sam_pngSize = 19594;
 
     extern const char*   sam2_png;
-    const int            sam2_pngSize = 1599347;
+    const int            sam2_pngSize = 1600083;
 
     extern const char*   sam2_mappings_png;
     const int            sam2_mappings_pngSize = 836279;

@@ -11,6 +11,7 @@
 #include "UI/SampleEditor.h"
 #include "UI/CustomKeyboard.h"
 #include "UI/KeyboardMappingEditor.h"
+#include "UI/FXPanel.h"
 #include "AudioEngine/Sampler.h"    
 
 //==============================================================================
@@ -88,6 +89,7 @@ public:
     std::unique_ptr <juce::Button> modViewButton = nullptr;
     std::unique_ptr <juce::Button> sequencerViewButton = nullptr;
     std::unique_ptr <juce::Button> recordButton = nullptr;
+    std::unique_ptr <FXPanel> fxPanel = nullptr;
 
     UIMode currentMode = UIMode::Main;
     
