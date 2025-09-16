@@ -90,15 +90,11 @@ void SamAudioProcessor::handleNoteOn(juce::MidiKeyboardState* source, int midiCh
 		voices[midiNoteNumber] = true;
 	}
 	else {
-		if (keyEditor == nullptr) {
-			return;
-		}
-
-		int note = keyEditor->findZoneForNoteAndVelocity(midiNoteNumber, (int)(adjustedVelocity * 127));
+		int note = findZoneForNoteAndVelocity(midiNoteNumber, (int)(adjustedVelocity * 127));
 		Logger::getCurrentLogger()->writeToLog("NoteOn : Zone for note " + String(midiNoteNumber) + " : " + String(note));
 
 		if (note >= 0) {
-			SampleZone* zone = keyEditor->getZone(note);
+			SampleZone* zone = getZone(note);
 			Sampler* sampler = zone->sampler.get();
 			sampler->getFilterEnvelope()->noteOn();
 			sampler->getAmpEnvelope()->noteOn();
@@ -123,15 +119,12 @@ void SamAudioProcessor::handleNoteOff(juce::MidiKeyboardState* source, int midiC
 		voices[midiNoteNumber] = false;
 	}
 	else {
-		if (keyEditor == nullptr) {
-			return;
-		}
 
-		std::vector<int> zoneIndices = keyEditor->findAllZonesForNote(midiNoteNumber);
+		std::vector<int> zoneIndices = findAllZonesForNote(midiNoteNumber);
 
 		for (int i = 0; i < zoneIndices.size(); i++) {
 			int zoneIndex = zoneIndices[i];
-			SampleZone* zone = keyEditor->getZone(zoneIndex);
+			SampleZone* zone = getZone(zoneIndex);
 			Sampler* sampler = zone->sampler.get();
 			sampler->getFilterEnvelope()->noteOff();
 			sampler->getAmpEnvelope()->noteOff();
@@ -143,6 +136,109 @@ void SamAudioProcessor::handleNoteOff(juce::MidiKeyboardState* source, int midiC
 	}
 	voices[midiNoteNumber] = false;
 }
+
+int SamAudioProcessor::findZoneForNote(int midiNote) const
+{
+	for (int i = 0; i < static_cast<int>(zones.size()); ++i)
+	{
+		const auto& zone = zones[static_cast<size_t>(i)];
+		if (isValidZone(zone) &&
+			midiNote >= zone.startNote && midiNote <= zone.endNote)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+int SamAudioProcessor::findZoneForNoteAndVelocity(int midiNote, int velocity) const
+{
+	for (int i = 0; i < static_cast<int>(zones.size()); ++i)
+	{
+		const auto& zone = zones[static_cast<size_t>(i)];
+		if (isValidZone(zone) &&
+			midiNote >= zone.startNote && midiNote <= zone.endNote &&
+			velocity >= zone.velLow && velocity <= zone.velHigh)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+std::vector<int> SamAudioProcessor::findAllZonesForNote(int midiNote) const
+{
+	std::vector<int> matchingZones;
+	for (int i = 0; i < static_cast<int>(zones.size()); ++i)
+	{
+		const auto& zone = zones[static_cast<size_t>(i)];
+		if (isValidZone(zone) &&
+			midiNote >= zone.startNote && midiNote <= zone.endNote)
+		{
+			matchingZones.push_back(i);
+		}
+	}
+	return matchingZones;
+}
+
+std::vector<int> SamAudioProcessor::findAllZonesForNoteAndVelocity(int midiNote, int velocity) const
+{
+	std::vector<int> matchingZones;
+	for (int i = 0; i < static_cast<int>(zones.size()); ++i)
+	{
+		const auto& zone = zones[static_cast<size_t>(i)];
+		if (isValidZone(zone) &&
+			midiNote >= zone.startNote && midiNote <= zone.endNote &&
+			velocity >= zone.velLow && velocity <= zone.velHigh)
+		{
+			matchingZones.push_back(i);
+		}
+	}
+	return matchingZones;
+}
+
+int SamAudioProcessor::findBestZoneForNoteAndVelocity(int midiNote, int velocity) const
+{
+	int bestZone = -1;
+	int smallestVelRange = 128;
+
+	for (int i = 0; i < static_cast<int>(zones.size()); ++i)
+	{
+		const auto& zone = zones[static_cast<size_t>(i)];
+		if (isValidZone(zone) &&
+			midiNote >= zone.startNote && midiNote <= zone.endNote &&
+			velocity >= zone.velLow && velocity <= zone.velHigh)
+		{
+			const int velRange = zone.velHigh - zone.velLow + 1;
+			if (velRange < smallestVelRange)
+			{
+				smallestVelRange = velRange;
+				bestZone = i;
+			}
+		}
+	}
+	return bestZone;
+}
+
+bool SamAudioProcessor::isValidZone(const SampleZone& z) noexcept
+{
+	return z.startNote >= 0 && z.endNote <= 127 && z.startNote <= z.endNote &&
+		z.velLow >= 1 && z.velHigh <= 127 && z.velLow <= z.velHigh;
+}
+
+SampleZone* SamAudioProcessor::getZone(int index) 
+{
+	if (index >= 0 && index < static_cast<int>(zones.size()))
+		return &zones[static_cast<size_t>(index)];
+	return nullptr;
+}
+
+
+int SamAudioProcessor::getNumZones() const noexcept
+{
+	return static_cast<int>(zones.size());
+}
+
 bool SamAudioProcessor::acceptsMidi() const
 {
 #if JucePlugin_WantsMidiInput
@@ -244,8 +340,8 @@ void SamAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	compressor->prepare(spec);
 	limiter->prepare(spec);
 
-	if (currentFile.existsAsFile()) {
-		loadFile(currentFile);
+	if (!loaded && currentFile.existsAsFile()) {
+		loadFile(currentFile);		
 		loaded = true;
 	}
 
@@ -336,14 +432,14 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 			}
 		}
 
-		if (keyEditor != nullptr) {
-			for (int j = 0; j < keyEditor->getNumZones(); j++) {
-				SampleZone* zone = keyEditor->getZone(j);
-				if (zone->sampler != nullptr && zone->sampler->isPlaying()) {
-					activeVoices++;
-				}
+
+		for (int j = 0; j < getNumZones(); j++) {
+			SampleZone* zone = getZone(j);
+			if (zone->sampler != nullptr && zone->sampler->isPlaying()) {
+				activeVoices++;
 			}
 		}
+
 
 		// Calculate automatic gain reduction based on active voices
 		float voiceGainReduction = 1.0f;
@@ -385,30 +481,29 @@ void SamAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 		}
 
 		// Process zone-based samplers
-		if (keyEditor != nullptr) {
-			for (int j = 0; j < keyEditor->getNumZones(); j++) {
-				SampleZone* zone = keyEditor->getZone(j);
-				if (zone->sampler != nullptr && zone->sampler->isPlaying()) {
-					for (int i = 0; i < bufferSize; i++) {
-						envValue = zone->sampler->getAmpEnvelope()->getNextSample();
-						zone->sampler->nextSample();
 
-						float left = zone->sampler->getCurrentSample(0) * envValue * finalGain;
-						float right = zone->sampler->getCurrentSample(1) * envValue * finalGain;
+		for (int j = 0; j < getNumZones(); j++) {
+			SampleZone* zone = getZone(j);
+			if (zone->sampler != nullptr && zone->sampler->isPlaying()) {
+				for (int i = 0; i < bufferSize; i++) {
+					envValue = zone->sampler->getAmpEnvelope()->getNextSample();
+					zone->sampler->nextSample();
 
-						//// Soft clipping
-						//left = std::tanh(left * 0.8f);
-						//right = std::tanh(right * 0.8f);
+					float left = zone->sampler->getCurrentSample(0) * envValue * finalGain;
+					float right = zone->sampler->getCurrentSample(1) * envValue * finalGain;
 
-						buffer.addSample(0, i, left);
-						buffer.addSample(1, i, right);
-					}
+					//// Soft clipping
+					//left = std::tanh(left * 0.8f);
+					//right = std::tanh(right * 0.8f);
 
-					if (zone->sampler->getFilterEnvelope() != nullptr) {
-						float f = cutoff + (zone->sampler->getFilterEnvelope()->getNextSample() * amount * (22000 - cutoff));
-						f = std::max(0.0f, std::min(f, 22000.0f));
-						lpfLeftStage1->coefficients(sampleRate, f, resonance);
-					}
+					buffer.addSample(0, i, left);
+					buffer.addSample(1, i, right);
+				}
+
+				if (zone->sampler->getFilterEnvelope() != nullptr) {
+					float f = cutoff + (zone->sampler->getFilterEnvelope()->getNextSample() * amount * (22000 - cutoff));
+					f = std::max(0.0f, std::min(f, 22000.0f));
+					lpfLeftStage1->coefficients(sampleRate, f, resonance);
 				}
 			}
 		}
@@ -502,7 +597,13 @@ bool SamAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* SamAudioProcessor::createEditor()
 {
-	return new SamAudioProcessorEditor(*this);
+	SamAudioProcessorEditor* editor = new SamAudioProcessorEditor(*this);
+	this->editor = editor;
+	if (loaded && editor != nullptr) {		
+		editor->loadZonesFromProcessor();
+	}
+
+	return editor;
 }
 
 //==============================================================================

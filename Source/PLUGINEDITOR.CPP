@@ -363,12 +363,8 @@ void SamAudioProcessorEditor::handleNoteOn(juce::MidiKeyboardState* source, int 
 			ampEnvelope->repaint();			
 		}
 		else {
-			if (mappingEditor == nullptr) {
-				lock.exit();
-				return;
-			}
 
-			int zone = mappingEditor->findZoneForNote(midiNoteNumber);
+			int zone = audioProcessor.findZoneForNote(midiNoteNumber);
 			if (zone >= 0) {
 				selectZone(zone);
 			}
@@ -396,7 +392,7 @@ void SamAudioProcessorEditor::selectZone(int zoneIndex)
 	currentSelectedZoneIndex = zoneIndex;
 	juce::Logger::writeToLog("Selected zone " + juce::String(zoneIndex));
 	
-	Sampler* sampler = zones[zoneIndex].sampler.get();
+	Sampler* sampler = audioProcessor.getZone(zoneIndex)->sampler.get();
 
 	if (sampler == nullptr) {
 		juce::Logger::writeToLog("Warning: Zone " + juce::String(zoneIndex) + " has no sampler");
@@ -510,6 +506,8 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 		sampleEditor->setSampler(nullptr);
 		sampleEditor->repaint();
 		
+		audioProcessor.clearZones();
+
 		// Clear sample set image
 		sampleSetImage = juce::Image();
 		repaint();
@@ -517,10 +515,10 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 	else if (button == loopButton.get())
 	{
 		// Handle both zones and legacy samplers
-		if (currentSelectedZoneIndex >= 0 && currentSelectedZoneIndex < static_cast<int>(zones.size())) {
+		if (currentSelectedZoneIndex >= 0 && currentSelectedZoneIndex < static_cast<int>(audioProcessor.getNumZones())) {
 			// Working with a zone
-			if (zones[currentSelectedZoneIndex].sampler != nullptr) {
-				zones[currentSelectedZoneIndex].sampler->setLoop(loopButton->getToggleState());
+			if (audioProcessor.getZone(currentSelectedZoneIndex)->sampler != nullptr) {
+				audioProcessor.getZone(currentSelectedZoneIndex)->sampler->setLoop(loopButton->getToggleState());
 				juce::Logger::writeToLog("Set loop for zone " + juce::String(currentSelectedZoneIndex) + " to " + (loopButton->getToggleState() ? "ON" : "OFF"));
 			}
 		}
@@ -533,10 +531,10 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 	else if (button == reverseButton.get())
 	{
 		// Handle both zones and legacy samplers
-		if (currentSelectedZoneIndex >= 0 && currentSelectedZoneIndex < static_cast<int>(zones.size())) {
+		if (currentSelectedZoneIndex >= 0 && currentSelectedZoneIndex < static_cast<int>(audioProcessor.getNumZones())) {
 			// Working with a zone
-			if (zones[currentSelectedZoneIndex].sampler != nullptr) {
-				zones[currentSelectedZoneIndex].sampler->setReverse(reverseButton->getToggleState());
+			if (audioProcessor.getZone(currentSelectedZoneIndex)->sampler != nullptr) {
+				audioProcessor.getZone(currentSelectedZoneIndex)->sampler->setReverse(reverseButton->getToggleState());
 				juce::Logger::writeToLog("Set reverse for zone " + juce::String(currentSelectedZoneIndex) + " to " + (reverseButton->getToggleState() ? "ON" : "OFF"));
 			}
 		}
@@ -605,7 +603,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 		keyboard->setTopLeftPosition(40, 880);
 
 		if (mappingEditor == nullptr) {
-			mappingEditor = std::make_unique<KeyboardMappingEditor>(*keyboard, zones);
+			mappingEditor = std::make_unique<KeyboardMappingEditor>(*keyboard, audioProcessor.getZones());
 			addAndMakeVisible(mappingEditor.get());		
 			mappingEditor->toFront(true);
 			mappingEditor->repaint();				
@@ -696,8 +694,8 @@ void SamAudioProcessorEditor::saveSet(juce::String& userHome)
 
 		// Save zone data
 		juce::ValueTree zonesNode = juce::ValueTree("Zones");
-		for (int i = 0; i < static_cast<int>(zones.size()); i++) {
-			const SampleZone& zone = zones[i];
+		for (int i = 0; i < static_cast<int>(audioProcessor.getNumZones()); i++) {
+			const SampleZone& zone = *audioProcessor.getZone(i);
 			
 			juce::ValueTree zoneNode = juce::ValueTree("Zone");
 			zoneNode.setProperty("index", i, nullptr);
@@ -748,11 +746,11 @@ void SamAudioProcessorEditor::onZoneAdded(int index, const SampleZone& zone)
 {
 	juce::Logger::writeToLog("Zone added at index " + juce::String(index));
 
-	juce::File file = zones[index].audioFile;
-	zones[index].sampler = std::make_unique<Sampler>(audioProcessor.sampleRate, audioProcessor.bufferSize);		
-	zones[index].sampler->loadSample(file);
-	zones[index].sampler->setLoop(true);
-	zones[index].sampler->play();
+	juce::File file = audioProcessor.getZone(index)->audioFile;
+	audioProcessor.getZone(index)->sampler = std::make_unique<Sampler>(audioProcessor.sampleRate, audioProcessor.bufferSize);
+	audioProcessor.getZone(index)->sampler->loadSample(file);
+	audioProcessor.getZone(index)->sampler->setLoop(true);
+	audioProcessor.getZone(index)->sampler->play();
 
 	selectZone(index);
 }
@@ -845,10 +843,10 @@ void SamAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
 	}
 	else if (slider == pitchSlider.get()) {
 		// Handle both zones and legacy samplers
-		if (currentSelectedZoneIndex >= 0 && currentSelectedZoneIndex < static_cast<int>(zones.size())) {
+		if (currentSelectedZoneIndex >= 0 && currentSelectedZoneIndex < static_cast<int>(audioProcessor.getNumZones())) {
 			// Working with a zone
-			if (zones[currentSelectedZoneIndex].sampler != nullptr) {
-				zones[currentSelectedZoneIndex].sampler->setPitch(pitchSlider->getValue());
+			if (audioProcessor.getZone(currentSelectedZoneIndex)->sampler != nullptr) {
+				audioProcessor.getZone(currentSelectedZoneIndex)->sampler->setPitch(pitchSlider->getValue());
 				juce::Logger::writeToLog("Set pitch for zone " + juce::String(currentSelectedZoneIndex) + " to " + juce::String(pitchSlider->getValue()));
 			}
 		}
@@ -896,24 +894,15 @@ void SamAudioProcessorEditor::loadZonesFromProcessor()
 	if (!audioProcessor.hasZoneDataToLoad()) {
 		return;
 	}
-	
-	// Clear existing zones
-	zones.clear();
-	
+		
 	// Get loaded zone data from processor - now returns SampleZone objects directly
 	auto loadedZones = audioProcessor.getAndClearLoadedZones();
-	
-	// Move the zones directly into our zones vector
-	for (auto& zone : loadedZones) {
-		zones.push_back(std::move(zone));
-	}
-	
+		
 	// Update mapping editor if it exists
 	if (mappingEditor != nullptr) {
 		mappingEditor->repaint();
 	}
-	
-	juce::Logger::writeToLog("Loaded " + juce::String(zones.size()) + " zones into editor.");
+		
 }
 
 void SamAudioProcessorEditor::loadSampleSetImage(const juce::File& setFile)

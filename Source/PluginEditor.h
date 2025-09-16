@@ -90,7 +90,7 @@ public:
     std::unique_ptr <juce::Button> recordButton = nullptr;
 
     UIMode currentMode = UIMode::Main;
-    std::vector<SampleZone> zones;
+    
     int currentSelectedZoneIndex = -1;  // Track currently selected zone
     juce::Image sampleSetImage;  // Store the loaded sample set image
 

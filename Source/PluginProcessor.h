@@ -118,7 +118,7 @@ public:
     
     // Method for editor to get and clear zone data
     std::vector<SampleZone> getAndClearLoadedZones() {
-        auto zones = std::move(loadedZones);
+        zones = std::move(loadedZones);
         loadedZones.clear();
         hasLoadedZoneData = false;
         return zones;
@@ -134,6 +134,32 @@ public:
 
     void setMaxPolyphony(int voices) { maxPolyphony = juce::jlimit(1, 32, voices); }
     int getMaxPolyphony() const { return maxPolyphony; }
+
+    // Zone lookup methods (unchanged from original)
+    int findZoneForNote(int midiNote) const;
+    int findZoneForNoteAndVelocity(int midiNote, int velocity) const;
+    std::vector<int> findAllZonesForNote(int midiNote) const;
+    std::vector<int> findAllZonesForNoteAndVelocity(int midiNote, int velocity) const;
+    int findBestZoneForNoteAndVelocity(int midiNote, int velocity) const;
+    SampleZone* getZone(int index);
+    int getNumZones() const noexcept;
+    static bool isValidZone(const SampleZone& z) noexcept;
+	void clearZones() noexcept { 
+
+		// erase all zones and their samplers
+
+        for (int i = 0; i < static_cast<int>(zones.size()); ++i)
+        {
+            auto& zone = zones[static_cast<size_t>(i)];
+            if (zone.sampler)
+            {
+                zone.sampler = nullptr; // Release the sampler
+            }
+		}
+
+        zones.clear(); 
+    }   
+	std::vector<SampleZone>& getZones() noexcept { return zones; }
 
 private:
 
@@ -165,6 +191,8 @@ private:
 
     std::array<VoiceInfo, 128> voiceInfo;
     int64_t currentTimeStamp = 0;
+
+	std::vector<SampleZone> zones;
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamAudioProcessor)

@@ -265,15 +265,6 @@ public:
         }
     }
 
-    // Zone lookup methods (unchanged from original)
-    int findZoneForNote(int midiNote) const;
-    int findZoneForNoteAndVelocity(int midiNote, int velocity) const;
-    std::vector<int> findAllZonesForNote(int midiNote) const;
-    std::vector<int> findAllZonesForNoteAndVelocity(int midiNote, int velocity) const;
-    int findBestZoneForNoteAndVelocity(int midiNote, int velocity) const;
-    const SampleZone* getZone(int index) const;
-    SampleZone* getZone(int index);
-    int getNumZones() const noexcept;
 
     //------------------------------------------------------------------------
     void paint(juce::Graphics& g) override
@@ -302,6 +293,7 @@ public:
             paintPreviewZone(g);
         }
     }
+    static bool isValidZone(const SampleZone& z) noexcept;
 
     void resized() override;
     void mouseMove(const juce::MouseEvent& e) override;
@@ -456,8 +448,7 @@ private:
 
     //------------------------------------------------------------------------
     // Utility functions and other private methods (unchanged from original)
-    static bool isBlackKey(int midiNote) noexcept;
-    static bool isValidZone(const SampleZone& z) noexcept;
+    static bool isBlackKey(int midiNote) noexcept;    
     static int countWhiteKeys(int from, int to) noexcept;
 
     int getWhiteKeyWidth() const;

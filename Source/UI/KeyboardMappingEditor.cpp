@@ -12,107 +12,7 @@
 //============================================================================
 // Zone lookup methods implementation
 //============================================================================
-int KeyboardMappingEditor::findZoneForNote(int midiNote) const
-{
-    for (int i = 0; i < static_cast<int>(zones.size()); ++i)
-    {
-        const auto& zone = zones[static_cast<size_t>(i)];
-        if (isValidZone(zone) &&
-            midiNote >= zone.startNote && midiNote <= zone.endNote)
-        {
-            return i;
-        }
-    }
-    return -1;
-}
 
-int KeyboardMappingEditor::findZoneForNoteAndVelocity(int midiNote, int velocity) const
-{
-    for (int i = 0; i < static_cast<int>(zones.size()); ++i)
-    {
-        const auto& zone = zones[static_cast<size_t>(i)];
-        if (isValidZone(zone) &&
-            midiNote >= zone.startNote && midiNote <= zone.endNote &&
-            velocity >= zone.velLow && velocity <= zone.velHigh)
-        {
-            return i;
-        }
-    }
-    return -1;
-}
-
-std::vector<int> KeyboardMappingEditor::findAllZonesForNote(int midiNote) const
-{
-    std::vector<int> matchingZones;
-    for (int i = 0; i < static_cast<int>(zones.size()); ++i)
-    {
-        const auto& zone = zones[static_cast<size_t>(i)];
-        if (isValidZone(zone) &&
-            midiNote >= zone.startNote && midiNote <= zone.endNote)
-        {
-            matchingZones.push_back(i);
-        }
-    }
-    return matchingZones;
-}
-
-std::vector<int> KeyboardMappingEditor::findAllZonesForNoteAndVelocity(int midiNote, int velocity) const
-{
-    std::vector<int> matchingZones;
-    for (int i = 0; i < static_cast<int>(zones.size()); ++i)
-    {
-        const auto& zone = zones[static_cast<size_t>(i)];
-        if (isValidZone(zone) &&
-            midiNote >= zone.startNote && midiNote <= zone.endNote &&
-            velocity >= zone.velLow && velocity <= zone.velHigh)
-        {
-            matchingZones.push_back(i);
-        }
-    }
-    return matchingZones;
-}
-
-int KeyboardMappingEditor::findBestZoneForNoteAndVelocity(int midiNote, int velocity) const
-{
-    int bestZone = -1;
-    int smallestVelRange = 128;
-
-    for (int i = 0; i < static_cast<int>(zones.size()); ++i)
-    {
-        const auto& zone = zones[static_cast<size_t>(i)];
-        if (isValidZone(zone) &&
-            midiNote >= zone.startNote && midiNote <= zone.endNote &&
-            velocity >= zone.velLow && velocity <= zone.velHigh)
-        {
-            const int velRange = zone.velHigh - zone.velLow + 1;
-            if (velRange < smallestVelRange)
-            {
-                smallestVelRange = velRange;
-                bestZone = i;
-            }
-        }
-    }
-    return bestZone;
-}
-
-const SampleZone* KeyboardMappingEditor::getZone(int index) const
-{
-    if (index >= 0 && index < static_cast<int>(zones.size()))
-        return &zones[static_cast<size_t>(index)];
-    return nullptr;
-}
-
-SampleZone* KeyboardMappingEditor::getZone(int index)
-{
-    if (index >= 0 && index < static_cast<int>(zones.size()))
-        return &zones[static_cast<size_t>(index)];
-    return nullptr;
-}
-
-int KeyboardMappingEditor::getNumZones() const noexcept
-{
-    return static_cast<int>(zones.size());
-}
 
 //============================================================================
 // Component overrides
@@ -341,6 +241,7 @@ bool KeyboardMappingEditor::isValidZone(const SampleZone& z) noexcept
     return z.startNote >= 0 && z.endNote <= 127 && z.startNote <= z.endNote &&
         z.velLow >= 1 && z.velHigh <= 127 && z.velLow <= z.velHigh;
 }
+
 
 int KeyboardMappingEditor::countWhiteKeys(int from, int to) noexcept
 {
