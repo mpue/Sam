@@ -618,6 +618,8 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 	}
 	else if (button == fxViewButton.get()) {
 		currentMode = UIMode::FX;
+		if (mappingEditor != nullptr)
+			mappingEditor->setVisible(false);
 		ampEnvelope->setVisible(false);
 		filterEnvelope->setVisible(false);
 		cutoffLabel->setVisible(false);
@@ -634,7 +636,6 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 	}
 	else if (button == mapViewButton.get()) {
 		currentMode = UIMode::Map;		
-		repaint();
 		fxPanel->setVisible(false);
 		ampEnvelope->setVisible(false);
 		filterEnvelope->setVisible(false);
@@ -675,6 +676,7 @@ void SamAudioProcessorEditor::buttonClicked(juce::Button* button)
 		mappingEditor->setTopLeftPosition(40, 620);
 		mappingEditor->setVisible(true);
 		audioProcessor.setKeyboardEditor(mappingEditor.get());
+		repaint();
 	}
 	else if (button == recordButton.get())
 	{
