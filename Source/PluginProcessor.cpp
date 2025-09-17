@@ -344,8 +344,9 @@ void SamAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	effectsProcessor = std::make_unique<EffectsProcessor>();
 	effectsProcessor->prepareToPlay(sampleRate, samplesPerBlock);
 
-	if (!loaded && currentFile.existsAsFile()) {
-		loadFile(currentFile);		
+	if (currentFile.existsAsFile()) {
+		loadFile(currentFile);	
+		getAndClearLoadedZones();
 		loaded = true;
 	}
 
@@ -609,10 +610,6 @@ juce::AudioProcessorEditor* SamAudioProcessor::createEditor()
 {
 	SamAudioProcessorEditor* editor = new SamAudioProcessorEditor(*this);
 	this->editor = editor;
-	if (loaded && editor != nullptr) {		
-		editor->loadZonesFromProcessor();
-	}
-
 	return editor;
 }
 
